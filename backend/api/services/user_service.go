@@ -5,8 +5,11 @@ import (
 	"errors"
 	"github.com/chong3916/todo-app/backend/shared/db"
 	"github.com/chong3916/todo-app/backend/shared/models"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"os"
+	"time"
 )
 
 type UserService struct {
@@ -38,8 +41,32 @@ func (s *UserService) Register(ctx context.Context, username, email, password st
 
 	err = s.Repo.CreateUser(ctx, newUser)
 	if err != nil {
-		return models.User{}, err
+		return models.User{}, errors.New("username or email already exists")
 	}
 
 	return newUser, nil
+}
+
+func (s *UserService) Login(ctx context.Context, email, password string) (string, error) {
+	// Find user by email
+	user, err := s.Repo.GetUserByEmail(ctx, email)
+	if err != nil {
+		return "", errors.New("invalid credentials")
+	}
+
+	// Compare password
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return "", errors.New("invalid credentials")
+	}
+
+	// Create JWT token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": user.ID,
+		"exp": time.Now().Add(time.Hour * 72).Unix(),
+		"iat": time.Now().Unix(),
+	})
+
+	// Sign with your secret key (keep this in an env var!)
+	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
 }

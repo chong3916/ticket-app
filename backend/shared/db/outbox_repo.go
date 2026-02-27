@@ -14,7 +14,7 @@ func NewOutboxRepository(pool *pgxpool.Pool) *OutboxRepository {
 	return &OutboxRepository{db: pool}
 }
 
-func (r *OutboxRepository) CreateOutbox(ctx context.Context, todo models.Todo) error {
+func (r *OutboxRepository) CreateOutbox(ctx context.Context, todo models.Outbox) error {
 	// Your SQLC or manual pgx logic goes here
 	return nil
 }

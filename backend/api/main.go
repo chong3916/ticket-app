@@ -9,7 +9,9 @@ import (
 )
 
 func main() {
-	pool := db.InitPool(os.Getenv("DATABASE_URL"))
+	dbURL := os.Getenv("DATABASE_URL")
+	db.RunMigrations(dbURL)
+	pool := db.InitPool(dbURL)
 	defer pool.Close()
 
 	todoRepo := db.NewTodoRepository(pool)

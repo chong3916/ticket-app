@@ -17,7 +17,6 @@ func main() {
 
 	userRepo := db.NewUserRepository(pool)
 	todoRepo := db.NewTodoRepository(pool)
-	outboxRepo := db.NewOutboxRepository(pool)
 
 	userService := services.NewUserService(userRepo)
 	todoService := services.NewTodoService(todoRepo)

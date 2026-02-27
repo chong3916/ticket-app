@@ -14,25 +14,6 @@ func NewTodoRepository(pool *pgxpool.Pool) *TodoRepository {
 	return &TodoRepository{db: pool}
 }
 
-//func (r *TodoRepository) CreateTodo(ctx context.Context, todo models.Todo) (models.Todo, error) {
-//	query := `
-//		INSERT INTO todos (user_id, title, status)
-//       	VALUES ($1, $2, $3)
-//       	RETURNING id, completed, created_at, updated_at
-//	`
-//
-//	err := r.db.QueryRow(ctx, query,
-//		todo.UserID,
-//		todo.Title,
-//		todo.Status,
-//	).Scan(&todo.ID, &todo.Completed, &todo.CreatedAt, &todo.UpdatedAt)
-//
-//	if err != nil {
-//		return models.Todo{}, err
-//	}
-//	return todo, nil
-//}
-
 func (r *TodoRepository) CreateTodo(ctx context.Context, todo models.Todo) (models.Todo, error) {
 	// Start transaction
 	tx, err := r.db.Begin(ctx)

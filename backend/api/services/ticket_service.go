@@ -9,14 +9,26 @@ import (
 )
 
 type TicketService struct {
-	Repo *db.TicketRepository
+	TicketRepo    *db.TicketRepository
+	WorkspaceRepo *db.WorkspaceRepository
 }
 
-func NewTicketService(repo *db.TicketRepository) *TicketService {
-	return &TicketService{Repo: repo}
+func NewTicketService(ticketRepo *db.TicketRepository, wsRepo *db.WorkspaceRepository) *TicketService {
+	return &TicketService{
+		TicketRepo:    ticketRepo,
+		WorkspaceRepo: wsRepo,
+	}
 }
 
 func (s *TicketService) CreateTicket(ctx context.Context, workspaceID uuid.UUID, creatorID uuid.UUID, assigneeID uuid.UUID, title string, description string, priority string, tags []string) (models.Ticket, error) {
+	isMember, err := s.WorkspaceRepo.IsMember(ctx, workspaceID, creatorID)
+	if err != nil {
+		return models.Ticket{}, err
+	}
+	if !isMember {
+		return models.Ticket{}, errors.New("forbidden: you do not have access to this workspace")
+	}
+
 	if title == "" {
 		return models.Ticket{}, errors.New("title cannot be empty")
 	}
@@ -43,7 +55,7 @@ func (s *TicketService) CreateTicket(ctx context.Context, workspaceID uuid.UUID,
 		Tags:        tags,
 	}
 
-	result, err := s.Repo.CreateTicket(ctx, todo)
+	result, err := s.TicketRepo.CreateTicket(ctx, todo)
 	if err != nil {
 		return models.Ticket{}, err
 	}
@@ -52,7 +64,7 @@ func (s *TicketService) CreateTicket(ctx context.Context, workspaceID uuid.UUID,
 }
 
 func (s *TicketService) GetCreatorTicket(ctx context.Context, userID uuid.UUID) ([]models.Ticket, error) {
-	result, err := s.Repo.GetCreatorTicket(ctx, userID)
+	result, err := s.TicketRepo.GetCreatorTicket(ctx, userID)
 	if err != nil {
 		return []models.Ticket{}, err
 	}
@@ -61,5 +73,15 @@ func (s *TicketService) GetCreatorTicket(ctx context.Context, userID uuid.UUID) 
 }
 
 func (s *TicketService) UpdateTicketStatus(ctx context.Context, ticketID uuid.UUID, userID uuid.UUID, status string) error {
-	return s.Repo.UpdateTicketStatus(ctx, ticketID, userID, status)
+	return s.TicketRepo.UpdateTicketStatus(ctx, ticketID, userID, status)
+}
+
+func (s *TicketService) GetWorkspaceTickets(ctx context.Context, workspaceID uuid.UUID, userID uuid.UUID) ([]models.Ticket, error) {
+	// Check permission
+	isMember, err := s.WorkspaceRepo.IsMember(ctx, workspaceID, userID)
+	if err != nil || !isMember {
+		return nil, errors.New("forbidden")
+	}
+
+	return s.TicketRepo.GetWorkspaceTickets(ctx, workspaceID)
 }

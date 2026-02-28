@@ -85,7 +85,7 @@ func (h *TicketHandler) CreateTicket(c *gin.Context) {
 	c.JSON(http.StatusCreated, result)
 }
 
-func (h *TicketHandler) GetUserCreatorTodo(c *gin.Context) {
+func (h *TicketHandler) GetCreatorTicket(c *gin.Context) {
 	val, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
@@ -113,7 +113,7 @@ func (h *TicketHandler) GetUserCreatorTodo(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func (h *TicketHandler) UpdateTodoStatus(c *gin.Context) {
+func (h *TicketHandler) UpdateTicketStatus(c *gin.Context) {
 	idParam := c.Param("id")
 	ticketID, err := uuid.Parse(idParam)
 	if err != nil {
@@ -137,7 +137,11 @@ func (h *TicketHandler) UpdateTodoStatus(c *gin.Context) {
 	// Update
 	err = h.Service.UpdateTicketStatus(c.Request.Context(), ticketID, userID, req.Status)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if err.Error() == "ticket not found or unauthorized: must be a workspace member" {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update ticket"})
 		return
 	}
 

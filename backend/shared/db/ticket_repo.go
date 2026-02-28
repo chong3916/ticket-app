@@ -109,10 +109,14 @@ func (r *TicketRepository) GetCreatorTicket(ctx context.Context, creatorID uuid.
 
 func (r *TicketRepository) UpdateTicketStatus(ctx context.Context, ticketID uuid.UUID, userID uuid.UUID, status string) error {
 	query := `
-        UPDATE tickets 
+        UPDATE tickets t
         SET status = $1, updated_at = NOW()
-        WHERE id = $2 
+        FROM workspace_members wm
+        WHERE t.id = $2 
+          AND t.workspace_id = wm.workspace_id 
+          AND wm.user_id = $3
     `
+
 	result, err := r.db.Exec(ctx, query, status, ticketID)
 	if err != nil {
 		return err
@@ -120,8 +124,54 @@ func (r *TicketRepository) UpdateTicketStatus(ctx context.Context, ticketID uuid
 
 	// Check if any row was actually updated
 	if result.RowsAffected() == 0 {
-		return errors.New("ticket not found or unauthorized")
+		return errors.New("ticket not found or unauthorized: must be a workspace member")
 	}
 
 	return nil
+}
+
+func (r *TicketRepository) GetWorkspaceTickets(ctx context.Context, workspaceID uuid.UUID) ([]models.Ticket, error) {
+	tickets := []models.Ticket{}
+
+	query := `
+	   SELECT id, workspace_id, creator_id, assignee_id, title, description, priority, status, tags, created_at, updated_at 
+	   FROM tickets
+	   WHERE workspace_id = $1
+	   ORDER BY created_at DESC
+	`
+
+	rows, err := r.db.Query(ctx, query, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var t models.Ticket
+		err := rows.Scan(
+			&t.ID,
+			&t.WorkspaceID,
+			&t.CreatorID,
+			&t.AssigneeID,
+			&t.Title,
+			&t.Description,
+			&t.Priority,
+			&t.Status,
+			&t.Tags,
+			&t.CreatedAt,
+			&t.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		tickets = append(tickets, t)
+	}
+
+	// Check for errors encountered during iteration
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return tickets, nil
 }

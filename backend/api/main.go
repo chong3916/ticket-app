@@ -44,9 +44,9 @@ func main() {
 	api := r.Group("/api")
 	api.Use(middleware.AuthMiddleware())
 	{
-		api.GET("/todos", todoHandler.GetUserCreatorTodo)
+		api.GET("/todos", todoHandler.GetCreatorTicket)
 		api.POST("/todos", todoHandler.CreateTicket)
-		api.PATCH("/todos/:id", todoHandler.UpdateTodoStatus)
+		api.PATCH("/todos/:id", todoHandler.UpdateTicketStatus)
 	}
 
 	log.Println("Server starting on :8080")

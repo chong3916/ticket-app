@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/cors"
 	"log"
-	"net/http"
 	"os"
 )
 
@@ -23,9 +22,11 @@ func main() {
 	ticketRepo := db.NewTicketRepository(pool)
 
 	userService := services.NewUserService(userRepo)
+	wsService := services.NewWorkspaceService(wsRepo)
 	ticketService := services.NewTicketService(ticketRepo, wsRepo)
 
 	userHandler := handlers.NewUserHandler(userService)
+	wsHandler := handlers.NewWorkspaceHandler(wsService)
 	ticketHandler := handlers.NewTicketHandler(ticketService)
 
 	r := gin.Default()
@@ -37,6 +38,9 @@ func main() {
 		AllowedHeaders:   []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		AllowCredentials: true,
 	})
+	r.Use(func(ctx *gin.Context) {
+		c.HandlerFunc(ctx.Writer, ctx.Request)
+	})
 
 	r.POST("/register", userHandler.Register)
 	r.POST("/login", userHandler.Login)
@@ -45,11 +49,19 @@ func main() {
 	api := r.Group("/api")
 	api.Use(middleware.AuthMiddleware())
 	{
-		api.GET("/todos", ticketHandler.GetCreatorTicket)
-		api.POST("/todos", ticketHandler.CreateTicket)
-		api.PATCH("/todos/:id", ticketHandler.UpdateTicketStatus)
+		api.GET("/tickets", ticketHandler.GetCreatorTicket)
+		api.POST("/tickets", ticketHandler.CreateTicket)
+		api.PATCH("/tickets/:id", ticketHandler.UpdateTicketStatus)
+
+		api.GET("/workspaces/:id/tickets", ticketHandler.GetWorkspaceTickets)
+
+		api.POST("/workspaces", wsHandler.CreateWorkspace)
+		api.GET("/workspaces", wsHandler.GetUserWorkspaces)
+		api.GET("/workspaces/:id/members", wsHandler.GetWorkspaceMembers)
+		api.POST("/workspaces/:id/invite", wsHandler.InviteMember)
 	}
 
 	log.Println("Server starting on :8080")
-	http.ListenAndServe(":8080", c.Handler(r))
+
+	r.Run(":8080")
 }

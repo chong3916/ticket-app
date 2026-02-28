@@ -106,7 +106,7 @@ func (h *TicketHandler) GetCreatorTicket(c *gin.Context) {
 
 	result, err := h.Service.GetCreatorTicket(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch todos"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tickets"})
 		return
 	}
 
@@ -117,7 +117,7 @@ func (h *TicketHandler) UpdateTicketStatus(c *gin.Context) {
 	idParam := c.Param("id")
 	ticketID, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid todo id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ticket id"})
 		return
 	}
 
@@ -146,4 +146,39 @@ func (h *TicketHandler) UpdateTicketStatus(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+func (h *TicketHandler) GetWorkspaceTickets(c *gin.Context) {
+	val, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userIDStr, ok := val.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user context"})
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user id format"})
+		return
+	}
+
+	wsIDStr := c.Param("id")
+	wsID, err := uuid.Parse(wsIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workspace id"})
+		return
+	}
+
+	result, err := h.Service.GetWorkspaceTickets(c.Request.Context(), wsID, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch workspace tickets"})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
 }

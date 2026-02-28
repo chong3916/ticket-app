@@ -32,13 +32,22 @@ func (h *UserHandler) Register(c *gin.Context) {
 		return
 	}
 
-	result, err := h.Service.Register(c.Request.Context(), req.Username, req.Email, req.Password)
+	user, err := h.Service.Register(c.Request.Context(), req.Username, req.Email, req.Password)
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, result)
+	token, err := h.Service.GenerateToken(user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate session"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"token": token,
+		"user":  user,
+	})
 }
 
 func (h *UserHandler) Login(c *gin.Context) {

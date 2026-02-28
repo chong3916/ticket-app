@@ -16,9 +16,11 @@ import {
 import { Input } from "@/components/ui/input"
 import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext.tsx";
-import { Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { toast } from "sonner";
 
 export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
+    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const { login } = useAuth();
@@ -36,10 +38,13 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
             const data = await response.json();
             if (response.ok && data.token) {
                 login(data.token);
+                toast.success("Welcome back!");
+                navigate("/dashboard");
             } else {
-                alert(data.error || 'Something went wrong');
+                toast(data.error || 'Something went wrong');
             }
         } catch (err) {
+            toast.error("Could not connect to the server.");
             console.error("Auth error:", err);
         }
     };

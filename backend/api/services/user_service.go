@@ -60,13 +60,15 @@ func (s *UserService) Login(ctx context.Context, email, password string) (string
 		return "", errors.New("invalid credentials")
 	}
 
-	// Create JWT token
+	return s.GenerateToken(user)
+}
+
+func (s *UserService) GenerateToken(user models.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": user.ID,
+		"sub": user.ID.String(),
 		"exp": time.Now().Add(time.Hour * 72).Unix(),
 		"iat": time.Now().Unix(),
 	})
 
-	// Sign with your secret key (keep this in an env var!)
 	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
 }

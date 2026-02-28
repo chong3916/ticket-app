@@ -8,19 +8,24 @@ import (
 	"net/http"
 )
 
-type TodoHandler struct {
-	Service *services.TodoService
+type TicketHandler struct {
+	Service *services.TicketService
 }
 
-func NewTodoHandler(svc *services.TodoService) *TodoHandler {
-	return &TodoHandler{Service: svc}
+func NewTicketHandler(svc *services.TicketService) *TicketHandler {
+	return &TicketHandler{Service: svc}
 }
 
-type CreateTodoRequest struct {
-	Title string `json:"title" binding:"required"`
+type CreateTicketRequest struct {
+	WorkspaceIDStr string   `json:"workspace_id_str" binding:"required"`
+	AssigneeIDStr  string   `json:"assignee_id_str"`
+	Title          string   `json:"title" binding:"required"`
+	Description    string   `json:"description"`
+	Priority       string   `json:"priority"`
+	Tags           []string `json:"tags"`
 }
 
-func (h *TodoHandler) CreateTodo(c *gin.Context) {
+func (h *TicketHandler) CreateTicket(c *gin.Context) {
 	val, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
@@ -39,15 +44,40 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 		return
 	}
 
-	var req CreateTodoRequest
+	var req CreateTicketRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Title is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Workspace ID or Title is required"})
 		return
 	}
 
-	result, err := h.Service.CreateTodo(c.Request.Context(), userID, req.Title)
+	var workspaceID uuid.UUID
+	if req.WorkspaceIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workspace id format"})
+		return
+	} else {
+		var err error
+		workspaceID, err = uuid.Parse(req.WorkspaceIDStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workspace id format"})
+			return
+		}
+	}
+
+	var assigneeID uuid.UUID
+	if req.AssigneeIDStr != "" {
+		var err error
+		assigneeID, err = uuid.Parse(req.AssigneeIDStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid assignee id format"})
+			return
+		}
+	} else {
+		assigneeID = uuid.Nil
+	}
+
+	result, err := h.Service.CreateTicket(c.Request.Context(), workspaceID, userID, assigneeID, req.Title, req.Description, req.Priority, req.Tags)
 	if err != nil {
-		log.Printf("CreateTodo Error: %v", err)
+		log.Printf("CreateTicket Error: %v", err)
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
 		return
 	}
@@ -55,7 +85,7 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 	c.JSON(http.StatusCreated, result)
 }
 
-func (h *TodoHandler) GetUserTodo(c *gin.Context) {
+func (h *TicketHandler) GetUserCreatorTodo(c *gin.Context) {
 	val, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
@@ -74,7 +104,7 @@ func (h *TodoHandler) GetUserTodo(c *gin.Context) {
 		return
 	}
 
-	result, err := h.Service.GetUserTodo(c.Request.Context(), userID)
+	result, err := h.Service.GetCreatorTicket(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch todos"})
 		return
@@ -83,9 +113,9 @@ func (h *TodoHandler) GetUserTodo(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func (h *TodoHandler) UpdateTodoStatus(c *gin.Context) {
+func (h *TicketHandler) UpdateTodoStatus(c *gin.Context) {
 	idParam := c.Param("id")
-	todoID, err := uuid.Parse(idParam)
+	ticketID, err := uuid.Parse(idParam)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid todo id"})
 		return
@@ -105,7 +135,7 @@ func (h *TodoHandler) UpdateTodoStatus(c *gin.Context) {
 	}
 
 	// Update
-	err = h.Service.UpdateTodoStatus(c.Request.Context(), todoID, userID, req.Status)
+	err = h.Service.UpdateTicketStatus(c.Request.Context(), ticketID, userID, req.Status)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

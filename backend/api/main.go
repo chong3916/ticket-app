@@ -19,13 +19,13 @@ func main() {
 	defer pool.Close()
 
 	userRepo := db.NewUserRepository(pool)
-	todoRepo := db.NewTodoRepository(pool)
+	todoRepo := db.NewTicketRepository(pool)
 
 	userService := services.NewUserService(userRepo)
-	todoService := services.NewTodoService(todoRepo)
+	todoService := services.NewTicketService(todoRepo)
 
 	userHandler := handlers.NewUserHandler(userService)
-	todoHandler := handlers.NewTodoHandler(todoService)
+	todoHandler := handlers.NewTicketHandler(todoService)
 
 	r := gin.Default()
 
@@ -44,8 +44,8 @@ func main() {
 	api := r.Group("/api")
 	api.Use(middleware.AuthMiddleware())
 	{
-		api.GET("/todos", todoHandler.GetUserTodo)
-		api.POST("/todos", todoHandler.CreateTodo)
+		api.GET("/todos", todoHandler.GetUserCreatorTodo)
+		api.POST("/todos", todoHandler.CreateTicket)
 		api.PATCH("/todos/:id", todoHandler.UpdateTodoStatus)
 	}
 

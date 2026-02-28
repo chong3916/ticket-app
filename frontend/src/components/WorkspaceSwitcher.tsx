@@ -6,7 +6,7 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { useWorkspace } from "@/context/WorkspaceContext";
-import { useUserWorkspaces } from "@/hooks/useUserWorkspaces";
+import { useUserWorkspaces } from "@/hooks/useUserWorkspaces.ts";
 import { Building2 } from "lucide-react";
 
 export const WorkspaceSwitcher = () => {

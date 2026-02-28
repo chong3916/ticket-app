@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useApi } from '../hooks/useApi';
+import { useApi } from '@/hooks/useApi';
 
 export const useUserWorkspaces = () => {
     const { secureFetch } = useApi();

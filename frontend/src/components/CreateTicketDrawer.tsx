@@ -22,23 +22,48 @@ import {
     DrawerTrigger,
 } from "@/components/ui/drawer"
 import { Plus } from "lucide-react";
+import { useWorkspace } from "@/context/WorkspaceContext.tsx";
 
-const CreateTodoForm = ({ onSuccess }: { onSuccess: () => void }) => {
+const CreateTicketForm = ({ onSuccess }: { onSuccess: () => void }) => {
     const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
     const { secureFetch } = useApi();
+    const { currentWorkspace } = useWorkspace();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const res = await secureFetch('/api/todos', {
+        if (!currentWorkspace?.id) {
+            toast.error("Please select a workspace first");
+            return;
+        }
+
+        const payload = {
+            workspace_id_str: currentWorkspace.id,
+            title: title,
+            description: description,
+            priority: "medium",
+            tags: []
+        };
+
+        const res = await secureFetch('/api/tickets', {
             method: 'POST',
-            body: JSON.stringify({ title }),
+            body: JSON.stringify(payload),
         });
 
         if (res.ok) {
-            toast("Todo created!");
+            toast.success("Ticket created in " + currentWorkspace.name);
             setTitle('');
+            setDescription('');
             onSuccess();
+        } else {
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                const err = await res.json();
+                toast.error(err.error || "Failed to create ticket");
+            } else {
+                toast.error("An unexpected error occurred");
+            }
         }
     };
 
@@ -49,22 +74,30 @@ const CreateTodoForm = ({ onSuccess }: { onSuccess: () => void }) => {
                     <FieldLabel htmlFor="title">Title</FieldLabel>
                     <Input
                         id="title"
-                        type="text"
-                        placeholder="e.g., Buy groceries"
-                        value={ title }
-                        onChange={ (e) => setTitle(e.target.value) }
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Ticket title..."
                         required
                     />
                 </Field>
                 <Field>
-                    <Button type="submit">Create Task</Button>
+                    <FieldLabel htmlFor="desc">Description</FieldLabel>
+                    <Input
+                        id="desc"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Add more details..."
+                    />
                 </Field>
+                <Button type="submit" className="w-full" disabled={!currentWorkspace}>
+                    {currentWorkspace ? `Create Ticket` : "Select a Workspace"}
+                </Button>
             </FieldGroup>
         </form>
     )
 }
 
-export const CreateTodoDrawer = ({ onTodoCreated }: { onTodoCreated: () => void }) => {
+export const CreateTicketDrawer = ({ onTodoCreated }: { onTodoCreated: () => void }) => {
     const isDesktop = useMediaQuery("(min-width: 768px)")
     const [open, setOpen] = useState(false)
 
@@ -82,7 +115,7 @@ export const CreateTodoDrawer = ({ onTodoCreated }: { onTodoCreated: () => void 
                     <DialogHeader>
                         <DialogTitle>New Todo Task</DialogTitle>
                     </DialogHeader>
-                    <CreateTodoForm onSuccess={() => {
+                    <CreateTicketForm onSuccess={() => {
                         handleSuccess();
                         onTodoCreated();
                     }}/>
@@ -102,7 +135,7 @@ export const CreateTodoDrawer = ({ onTodoCreated }: { onTodoCreated: () => void 
                 <DrawerHeader className="text-left">
                     <DrawerTitle>New Todo Task</DrawerTitle>
                 </DrawerHeader>
-                <CreateTodoForm onSuccess={() => {
+                <CreateTicketForm onSuccess={() => {
                     handleSuccess();
                     onTodoCreated();
                 }} />

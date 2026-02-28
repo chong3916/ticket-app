@@ -37,15 +37,32 @@ func main() {
 
 	// Subscribe as notification_queue
 	err = rabbitBroker.Subscribe("notification_queue", "ticket_events", func(payload []byte) {
-		var ticket models.Ticket
-		if err := json.Unmarshal(payload, &ticket); err != nil {
-			log.Printf("Failed to unmarshal ticket: %v", err)
+		var wrapper struct {
+			Type string          `json:"type"`
+			Data json.RawMessage `json:"data"`
+		}
+
+		if err := json.Unmarshal(payload, &wrapper); err != nil {
+			log.Printf("Failed to unmarshal wrapper: %v", err)
 			return
 		}
 
-		// Send the notification
-		sendEmailNotification(ticket)
-		sendPhoneNotification(ticket)
+		switch wrapper.Type {
+		case "ticket_created":
+			var ticket models.Ticket
+			if err := json.Unmarshal(wrapper.Data, &ticket); err != nil {
+				log.Printf("Failed to unmarshal ticket: %v", err)
+				return
+			}
+			sendEmailNotification(ticket)
+			sendPhoneNotification(ticket)
+
+		case "ticket_status_updated":
+			log.Printf("Received status update event - decide if you want to notify for this!")
+
+		default:
+			log.Printf("Notification service ignoring event type: %s", wrapper.Type)
+		}
 	})
 
 	if err != nil {

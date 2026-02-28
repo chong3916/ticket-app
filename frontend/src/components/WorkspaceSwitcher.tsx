@@ -8,6 +8,7 @@ import {
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { useUserWorkspaces } from "@/hooks/useUserWorkspaces.ts";
 import { Building2 } from "lucide-react";
+import { CreateWorkspaceDrawer } from "@/components/CreateWorkspaceDrawer.tsx";
 
 export const WorkspaceSwitcher = () => {
     const { currentWorkspace, setWorkspace } = useWorkspace();
@@ -39,6 +40,10 @@ export const WorkspaceSwitcher = () => {
                     ))}
                 </SelectContent>
             </Select>
+
+            <div className="mt-1">
+                <CreateWorkspaceDrawer />
+            </div>
         </div>
     );
 };

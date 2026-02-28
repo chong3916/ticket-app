@@ -1,7 +1,7 @@
 import { useAuth } from '../context/AuthContext';
 
 export const useApi = () => {
-    const { token } = useAuth();
+    const { token, logout } = useAuth();
 
     const secureFetch = async (url: string, options: RequestInit = {}) => {
         const headers = {
@@ -14,6 +14,8 @@ export const useApi = () => {
 
         if (response.status === 401) {
             // Handle expired tokens/unauthorized
+            logout();
+            window.location.href = '/login';
             console.error("Session expired");
         }
 

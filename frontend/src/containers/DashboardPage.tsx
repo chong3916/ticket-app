@@ -1,10 +1,16 @@
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { LogOut, Plus, ListTodo } from "lucide-react";
+import { LogOut, ListTodo } from "lucide-react";
+import { useState } from "react";
+import { CreateTodoDrawer } from "@/components/CreateTodoDrawer.tsx";
+import { TodoList } from "@/components/TodoList.tsx";
 
 export default function DashboardPage() {
     const { logout } = useAuth();
+    const [refreshKey, setRefreshKey] = useState(0);
+
+    const handleRefresh = () => setRefreshKey(prev => prev + 1);
 
     return (
         <div className="flex min-h-screen w-full bg-muted/40">
@@ -33,8 +39,8 @@ export default function DashboardPage() {
                 </header>
 
                 {/* Main Content Area */}
-                <main className="flex-1 p-6">
-                    <div className="mx-auto max-w-4xl space-y-6">
+                <main className="flex-1 p-6 text-left">
+                    <div className="mx-auto max-w-4xl space-y-6 text-left">
                         <div className="flex items-center justify-between">
                             <div>
                                 <h2 className="text-3xl font-bold tracking-tight">Welcome back!</h2>
@@ -42,9 +48,7 @@ export default function DashboardPage() {
                                     Here&apos;s what is happening with your projects today.
                                 </p>
                             </div>
-                            <Button className="gap-2">
-                                <Plus className="h-4 w-4" /> New Task
-                            </Button>
+                            <CreateTodoDrawer onTodoCreated={handleRefresh} />
                         </div>
 
                         {/* Placeholder for Todo List */}
@@ -53,9 +57,7 @@ export default function DashboardPage() {
                                 <CardTitle>Upcoming Tasks</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
-                                    No tasks yet. Click "New Task" to get started!
-                                </div>
+                                <TodoList key={refreshKey} />
                             </CardContent>
                         </Card>
                     </div>

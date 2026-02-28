@@ -44,7 +44,9 @@ func main() {
 	api := r.Group("/api")
 	api.Use(middleware.AuthMiddleware())
 	{
+		api.GET("/todos", todoHandler.GetUserTodo)
 		api.POST("/todos", todoHandler.CreateTodo)
+		api.PATCH("/todos/:id", todoHandler.UpdateTodoStatus)
 	}
 
 	log.Println("Server starting on :8080")

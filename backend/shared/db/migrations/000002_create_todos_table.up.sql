@@ -3,7 +3,6 @@ CREATE TABLE IF NOT EXISTS todos (
     user_id    UUID    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title      TEXT    NOT NULL,
     status     TEXT    NOT NULL,
-    completed  BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

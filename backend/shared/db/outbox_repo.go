@@ -17,7 +17,7 @@ func NewOutboxRepository(pool *pgxpool.Pool) *OutboxRepository {
 
 func (r *OutboxRepository) GetPendingTasks(ctx context.Context) ([]models.Outbox, error) {
 	query := `
-		SELECT id, payload, event_type 
+		SELECT id, payload, event_type, status, created_at
 		FROM outbox 
 		WHERE status = 'pending' 
 		ORDER BY created_at ASC
@@ -33,7 +33,13 @@ func (r *OutboxRepository) GetPendingTasks(ctx context.Context) ([]models.Outbox
 	var tasks []models.Outbox
 	for rows.Next() {
 		var t models.Outbox
-		err := rows.Scan(&t.ID, &t.Payload, &t.EventType, &t.Status, &t.CreatedAt)
+		err := rows.Scan(
+			&t.ID,
+			&t.Payload,
+			&t.EventType,
+			&t.Status,
+			&t.CreatedAt,
+		)
 		if err != nil {
 			return nil, err
 		}

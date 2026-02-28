@@ -34,3 +34,16 @@ func (s *TodoService) CreateTodo(ctx context.Context, userID uuid.UUID, title st
 
 	return result, nil
 }
+
+func (s *TodoService) GetUserTodo(ctx context.Context, userID uuid.UUID) ([]models.Todo, error) {
+	result, err := s.Repo.GetUserTodo(ctx, userID)
+	if err != nil {
+		return []models.Todo{}, err
+	}
+
+	return result, nil
+}
+
+func (s *TodoService) UpdateTodoStatus(ctx context.Context, todoID uuid.UUID, userID uuid.UUID, status string) error {
+	return s.Repo.UpdateTodoStatus(ctx, todoID, userID, status)
+}

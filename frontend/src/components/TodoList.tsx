@@ -27,18 +27,25 @@ export const TodoList = () => {
         fetchTodos();
     }, []);
 
-    const handleToggleStatus = async (id: string, completed: boolean) => {
-        setTodos(prev => prev.map(t => t.id === id ? { ...t, completed } : t));
+    const handleToggleStatus = async (id: string, isCurrentlyCompleted: boolean) => {
+        const newStatus = isCurrentlyCompleted ? "pending" : "completed";
+        const oldStatus = isCurrentlyCompleted ? "completed" : "pending";
+
+        setTodos(prev => prev.map(t =>
+            t.id === id ? { ...t, status: newStatus } : t
+        ));
 
         const res = await secureFetch(`/api/todos/${id}`, {
             method: 'PATCH',
-            body: JSON.stringify({ completed }),
+            body: JSON.stringify({ status: newStatus }),
         });
 
         if (!res.ok) {
             toast.error("Failed to update task");
             // Rollback if the server fails
-            setTodos(prev => prev.map(t => t.id === id ? { ...t, completed: !completed } : t));
+            setTodos(prev => prev.map(t =>
+                t.id === id ? { ...t, status: oldStatus } : t
+            ));
         }
     };
 
@@ -60,7 +67,7 @@ export const TodoList = () => {
                 <TaskCard
                     key={todo.id}
                     task={todo}
-                    onToggle={handleToggleStatus}
+                    onToggle={() => handleToggleStatus(todo.id, todo.status === "completed")}
                 />
             ))}
         </div>

@@ -33,7 +33,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	log.Println("📢 Notification Service is online. Waiting for messages...")
+	log.Println("Notification Service is online. Waiting for messages...")
 
 	// Subscribe as notification_queue
 	err = rabbitBroker.Subscribe("notification_queue", "todo_events", func(payload []byte) {

@@ -36,16 +36,16 @@ func main() {
 	log.Println("Notification Service is online. Waiting for messages...")
 
 	// Subscribe as notification_queue
-	err = rabbitBroker.Subscribe("notification_queue", "todo_events", func(payload []byte) {
-		var todo models.Ticket
-		if err := json.Unmarshal(payload, &todo); err != nil {
-			log.Printf("Failed to unmarshal todo: %v", err)
+	err = rabbitBroker.Subscribe("notification_queue", "ticket_events", func(payload []byte) {
+		var ticket models.Ticket
+		if err := json.Unmarshal(payload, &ticket); err != nil {
+			log.Printf("Failed to unmarshal ticket: %v", err)
 			return
 		}
 
 		// Send the notification
-		sendEmailNotification(todo)
-		sendPhoneNotification(todo)
+		sendEmailNotification(ticket)
+		sendPhoneNotification(ticket)
 	})
 
 	if err != nil {
@@ -56,10 +56,10 @@ func main() {
 	log.Println("Notification service shutting down...")
 }
 
-func sendEmailNotification(todo models.Ticket) {
-	log.Printf("SENDING EMAIL: 'Hey User %s, your todo [%s] was created!'", todo.UserID, todo.Title)
+func sendEmailNotification(ticket models.Ticket) {
+	log.Printf("SENDING EMAIL: 'Hey User %s, your ticket [%s] was created!'", ticket.CreatorID, ticket.Title)
 }
 
-func sendPhoneNotification(todo models.Ticket) {
-	log.Printf("SENDING PHONE NOTIFICATION: 'Hey User %s, your todo [%s] was created!'", todo.UserID, todo.Title)
+func sendPhoneNotification(ticket models.Ticket) {
+	log.Printf("SENDING PHONE NOTIFICATION: 'Hey User %s, your ticket [%s] was created!'", ticket.CreatorID, ticket.Title)
 }

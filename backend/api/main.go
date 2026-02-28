@@ -19,13 +19,14 @@ func main() {
 	defer pool.Close()
 
 	userRepo := db.NewUserRepository(pool)
-	todoRepo := db.NewTicketRepository(pool)
+	wsRepo := db.NewWorkspaceRepository(pool)
+	ticketRepo := db.NewTicketRepository(pool)
 
 	userService := services.NewUserService(userRepo)
-	todoService := services.NewTicketService(todoRepo)
+	ticketService := services.NewTicketService(ticketRepo, wsRepo)
 
 	userHandler := handlers.NewUserHandler(userService)
-	todoHandler := handlers.NewTicketHandler(todoService)
+	ticketHandler := handlers.NewTicketHandler(ticketService)
 
 	r := gin.Default()
 
@@ -44,9 +45,9 @@ func main() {
 	api := r.Group("/api")
 	api.Use(middleware.AuthMiddleware())
 	{
-		api.GET("/todos", todoHandler.GetCreatorTicket)
-		api.POST("/todos", todoHandler.CreateTicket)
-		api.PATCH("/todos/:id", todoHandler.UpdateTicketStatus)
+		api.GET("/todos", ticketHandler.GetCreatorTicket)
+		api.POST("/todos", ticketHandler.CreateTicket)
+		api.PATCH("/todos/:id", ticketHandler.UpdateTicketStatus)
 	}
 
 	log.Println("Server starting on :8080")

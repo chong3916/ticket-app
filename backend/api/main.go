@@ -6,6 +6,9 @@ import (
 	"github.com/chong3916/todo-app/backend/api/services"
 	"github.com/chong3916/todo-app/backend/shared/db"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/cors"
+	"log"
+	"net/http"
 	"os"
 )
 
@@ -25,6 +28,15 @@ func main() {
 	todoHandler := handlers.NewTodoHandler(todoService)
 
 	r := gin.Default()
+
+	// CORS
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173"}, // React app
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowCredentials: true,
+	})
+
 	r.POST("/register", userHandler.Register)
 	r.POST("/login", userHandler.Login)
 
@@ -32,7 +44,9 @@ func main() {
 	api := r.Group("/api")
 	api.Use(middleware.AuthMiddleware())
 	{
-		r.POST("/todos", todoHandler.CreateTodo)
+		api.POST("/todos", todoHandler.CreateTodo)
 	}
-	r.Run(":8080")
+
+	log.Println("Server starting on :8080")
+	http.ListenAndServe(":8080", c.Handler(r))
 }

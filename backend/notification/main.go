@@ -1,11 +1,23 @@
-package notification
+package main
 
-import "log"
+import (
+	"context"
+	"encoding/json"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/chong3916/todo-app/backend/shared/broker"
+	"github.com/chong3916/todo-app/backend/shared/models"
+	"github.com/rabbitmq/amqp091-go"
+)
 
 func main() {
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	// Connect to rabbit mq
+	conn, err := amqp091.Dial(os.Getenv("RABBITMQ_URL"))
 	if err != nil {
-		log.Fatalf("Failed to connect: %v", err)
+		log.Fatalf("Notification service failed to connect to RabbitMQ: %v", err)
 	}
 	defer conn.Close()
 
@@ -15,23 +27,39 @@ func main() {
 	}
 	defer ch.Close()
 
-	// Ensure infrastructure exists
-	if err := SetupRabbitMQ(ch); err != nil {
-		log.Fatalf("Failed to setup RabbitMQ: %v", err)
+	rabbitBroker := broker.NewRabbitMQBroker(conn, ch)
+
+	// Keep the process alive
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	log.Println("📢 Notification Service is online. Waiting for messages...")
+
+	// Subscribe as notification_queue
+	err = rabbitBroker.Subscribe("notification_queue", func(payload []byte) {
+		var todo models.Todo
+		if err := json.Unmarshal(payload, &todo); err != nil {
+			log.Printf("Failed to unmarshal todo: %v", err)
+			return
+		}
+
+		// Send the notification
+		sendEmailNotification(todo)
+		sendPhoneNotification(todo)
+	})
+
+	if err != nil {
+		log.Fatalf("Failed to subscribe to queue: %v", err)
 	}
 
-	msgs, _ := ch.Consume("notification_queue", "", true, false, false, false, nil)
+	<-ctx.Done()
+	log.Println("Notification service shutting down...")
+}
 
-	// Use a channel to keep the process alive
-	forever := make(chan bool)
+func sendEmailNotification(todo models.Todo) {
+	log.Printf("SENDING EMAIL: 'Hey User %s, your todo [%s] was created!'", todo.UserID, todo.Title)
+}
 
-	go func() {
-		for d := range msgs {
-			log.Printf("📩 Dispatching Notification: %s", d.Body)
-			// Your logic: SendEmail(d.Body)
-		}
-	}()
-
-	log.Println(" [*] Waiting for messages. To exit press CTRL+C")
-	<-forever
+func sendPhoneNotification(todo models.Todo) {
+	log.Printf("SENDING PHONE NOTIFICATION: 'Hey User %s, your todo [%s] was created!'", todo.UserID, todo.Title)
 }

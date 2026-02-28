@@ -1,6 +1,6 @@
 package broker
 
 type MessageBroker interface {
-	Publish(topic string, payload any) error
-	Subscribe(topic string, handler func(payload []byte)) error
+	Publish(exchangeName string, payload any) error
+	Subscribe(queueName string, exchangeName string, handler func(payload []byte)) error
 }

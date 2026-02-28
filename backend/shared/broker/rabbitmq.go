@@ -17,14 +17,27 @@ func NewRabbitMQBroker(conn *amqp091.Connection, ch *amqp091.Channel) *RabbitMQB
 	}
 }
 
-func (r *RabbitMQBroker) Publish(topic string, payload any) error {
+func (r *RabbitMQBroker) Publish(exchangeName string, payload any) error {
+	err := r.channel.ExchangeDeclare(
+		exchangeName,
+		"fanout",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}
 
 	return r.channel.Publish(
-		topic,
+		exchangeName,
 		"",
 		false,
 		false,
@@ -35,9 +48,45 @@ func (r *RabbitMQBroker) Publish(topic string, payload any) error {
 	)
 }
 
-func (r *RabbitMQBroker) Subscribe(topic string, handler func(payload []byte)) error {
+func (r *RabbitMQBroker) Subscribe(queueName string, exchangeName string, handler func(payload []byte)) error {
+	err := r.channel.ExchangeDeclare(
+		exchangeName,
+		"fanout",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.channel.QueueDeclare(
+		queueName,
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = r.channel.QueueBind(
+		queueName,
+		"",
+		exchangeName,
+		false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
 	msgs, err := r.channel.Consume(
-		topic,
+		queueName,
 		"",
 		false, // manual ack
 		false,

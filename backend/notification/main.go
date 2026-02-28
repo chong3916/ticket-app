@@ -36,7 +36,7 @@ func main() {
 	log.Println("📢 Notification Service is online. Waiting for messages...")
 
 	// Subscribe as notification_queue
-	err = rabbitBroker.Subscribe("notification_queue", func(payload []byte) {
+	err = rabbitBroker.Subscribe("notification_queue", "todo_events", func(payload []byte) {
 		var todo models.Todo
 		if err := json.Unmarshal(payload, &todo); err != nil {
 			log.Printf("Failed to unmarshal todo: %v", err)

@@ -108,6 +108,13 @@ func (r *TicketRepository) GetCreatorTicket(ctx context.Context, creatorID uuid.
 }
 
 func (r *TicketRepository) UpdateTicketStatus(ctx context.Context, ticketID uuid.UUID, userID uuid.UUID, status string) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	var updatedTicket models.Ticket
 	query := `
         UPDATE tickets t
         SET status = $1, updated_at = NOW()
@@ -115,19 +122,30 @@ func (r *TicketRepository) UpdateTicketStatus(ctx context.Context, ticketID uuid
         WHERE t.id = $2 
           AND t.workspace_id = wm.workspace_id 
           AND wm.user_id = $3
+        RETURNING t.id, t.workspace_id, t.creator_id, t.assignee_id, t.title, t.description, t.priority, t.status, t.tags, t.created_at, t.updated_at
     `
 
-	result, err := r.db.Exec(ctx, query, status, ticketID)
+	err = tx.QueryRow(ctx, query, status, ticketID, userID).Scan(
+		&updatedTicket.ID, &updatedTicket.WorkspaceID, &updatedTicket.CreatorID,
+		&updatedTicket.AssigneeID, &updatedTicket.Title, &updatedTicket.Description,
+		&updatedTicket.Priority, &updatedTicket.Status, &updatedTicket.Tags,
+		&updatedTicket.CreatedAt, &updatedTicket.UpdatedAt,
+	)
+
+	if err != nil {
+		return errors.New("ticket not found or unauthorized: must be a workspace member")
+	}
+
+	outboxQuery := `
+       INSERT INTO outbox (payload, event_type) 
+       VALUES ($1, $2)
+    `
+	_, err = tx.Exec(ctx, outboxQuery, updatedTicket, "ticket_status_updated")
 	if err != nil {
 		return err
 	}
 
-	// Check if any row was actually updated
-	if result.RowsAffected() == 0 {
-		return errors.New("ticket not found or unauthorized: must be a workspace member")
-	}
-
-	return nil
+	return tx.Commit(ctx)
 }
 
 func (r *TicketRepository) GetWorkspaceTickets(ctx context.Context, workspaceID uuid.UUID) ([]models.Ticket, error) {

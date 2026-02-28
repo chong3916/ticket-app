@@ -37,7 +37,7 @@ func main() {
 
 	// Subscribe as notification_queue
 	err = rabbitBroker.Subscribe("notification_queue", "todo_events", func(payload []byte) {
-		var todo models.Todo
+		var todo models.Ticket
 		if err := json.Unmarshal(payload, &todo); err != nil {
 			log.Printf("Failed to unmarshal todo: %v", err)
 			return
@@ -56,10 +56,10 @@ func main() {
 	log.Println("Notification service shutting down...")
 }
 
-func sendEmailNotification(todo models.Todo) {
+func sendEmailNotification(todo models.Ticket) {
 	log.Printf("SENDING EMAIL: 'Hey User %s, your todo [%s] was created!'", todo.UserID, todo.Title)
 }
 
-func sendPhoneNotification(todo models.Todo) {
+func sendPhoneNotification(todo models.Ticket) {
 	log.Printf("SENDING PHONE NOTIFICATION: 'Hey User %s, your todo [%s] was created!'", todo.UserID, todo.Title)
 }

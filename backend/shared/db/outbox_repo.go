@@ -19,7 +19,10 @@ func (r *OutboxRepository) GetPendingTasks(ctx context.Context) ([]models.Outbox
 	query := `
 		SELECT id, payload, event_type 
 		FROM outbox 
-		WHERE status = 'pending' LIMIT 10
+		WHERE status = 'pending' 
+		ORDER BY created_at ASC
+		LIMIT 10
+		FOR UPDATE SKIP LOCKED;
    `
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {

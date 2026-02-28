@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"github.com/chong3916/todo-app/backend/shared/broker"
+	"github.com/rabbitmq/amqp091-go"
 	"log"
 	"os"
 	"os/signal"
@@ -13,7 +15,6 @@ import (
 )
 
 func main() {
-	// Connect to the same db pool the api uses
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -23,16 +24,34 @@ func main() {
 	}
 	defer pool.Close()
 
-	// Initialize the outbox repo
+	conn, err := amqp091.Dial(os.Getenv("RABBITMQ_URL"))
+	if err != nil {
+		log.Fatalf("Unable to connect to RabbitMQ: %v", err)
+	}
+	defer conn.Close()
+
+	ch, err := conn.Channel()
+	if err != nil {
+		log.Fatalf("Unable to open RabbitMQ channel: %v", err)
+	}
+	defer ch.Close()
+
+	// Initialize broker & repo
+	rabbitBroker := broker.NewRabbitMQBroker(conn, ch)
 	outboxRepo := db.NewOutboxRepository(pool)
+
+	processor := &TaskProcessor{
+		repo:   outboxRepo,
+		broker: rabbitBroker,
+	}
 
 	log.Println("Worker started: Polling outbox every 2 seconds...")
 
-	// Start the polling loop
-	runWorker(ctx, outboxRepo)
+	// Start the loop using the processor
+	runWorker(ctx, processor)
 }
 
-func runWorker(ctx context.Context, repo *db.OutboxRepository) {
+func runWorker(ctx context.Context, p *TaskProcessor) {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
@@ -42,20 +61,14 @@ func runWorker(ctx context.Context, repo *db.OutboxRepository) {
 			log.Println("Shutting down worker gracefully...")
 			return
 		case <-ticker.C:
-			// Fetch pending tasks
-			tasks, err := repo.GetPendingTasks(ctx)
+			tasks, err := p.repo.GetPendingTasks(ctx)
 			if err != nil {
 				log.Printf("Error fetching tasks: %v", err)
 				continue
 			}
 
 			for _, task := range tasks {
-				log.Printf("Processing %s (ID: %s)", task.EventType, task.ID)
-
-				// Mark as processed
-				if err := repo.MarkAsProcessed(ctx, task.ID); err != nil {
-					log.Printf("Failed to mark task %s as processed: %v", task.ID, err)
-				}
+				p.ProcessTask(ctx, task)
 			}
 		}
 	}

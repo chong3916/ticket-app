@@ -43,3 +43,12 @@ func (s *BoardService) CreateDefaultBoardTx(ctx context.Context, tx pgx.Tx, work
 	}
 	return s.Repo.CreateDefaultBoardTx(ctx, tx, defaultBoard)
 }
+
+func (s *BoardService) AddColumnByWorkspace(ctx context.Context, workspaceID uuid.UUID, name string, statusKey string) (models.BoardColumn, error) {
+	board, err := s.Repo.GetWorkspaceBoard(ctx, workspaceID)
+	if err != nil {
+		return models.BoardColumn{}, err
+	}
+
+	return s.Repo.AddColumn(ctx, board.ID, name, statusKey)
+}

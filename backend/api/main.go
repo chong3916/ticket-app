@@ -63,6 +63,7 @@ func main() {
 		api.GET("/workspaces/:id/members", wsHandler.GetWorkspaceMembers)
 		api.POST("/workspaces/:id/invite", wsHandler.InviteMember)
 		api.GET("/workspaces/:id/board", boardHandler.GetWorkspaceBoard)
+		api.POST("/workspaces/:id/board/columns", boardHandler.AddColumn)
 	}
 
 	log.Println("Server starting on :8080")

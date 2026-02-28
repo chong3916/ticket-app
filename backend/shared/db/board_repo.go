@@ -95,3 +95,16 @@ func (r *BoardRepository) CreateDefaultBoardTx(ctx context.Context, tx pgx.Tx, b
 	}
 	return board, nil
 }
+
+func (r *BoardRepository) AddColumn(ctx context.Context, boardID uuid.UUID, name string, statusKey string) (models.BoardColumn, error) {
+	var col models.BoardColumn
+	query := `
+        INSERT INTO board_columns (board_id, name, status_key, position)
+        VALUES ($1, $2, $3, (SELECT COALESCE(MAX(position) + 1, 0) FROM board_columns WHERE board_id = $1))
+        RETURNING id, board_id, name, status_key, position
+    `
+	err := r.db.QueryRow(ctx, query, boardID, name, statusKey).Scan(
+		&col.ID, &col.BoardID, &col.Name, &col.StatusKey, &col.Position,
+	)
+	return col, err
+}

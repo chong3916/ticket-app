@@ -17,6 +17,10 @@ func NewWorkspaceRepository(pool *pgxpool.Pool) *WorkspaceRepository {
 	return &WorkspaceRepository{db: pool}
 }
 
+func (r *WorkspaceRepository) GetPool() *pgxpool.Pool {
+	return r.db
+}
+
 func (r *WorkspaceRepository) CreateWorkspaceWithMember(ctx context.Context, name string, userID uuid.UUID) (models.Workspace, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -160,4 +164,19 @@ func (r *WorkspaceRepository) GetUserWorkspaceRole(ctx context.Context, workspac
 	}
 
 	return role, nil
+}
+
+func (r *WorkspaceRepository) CreateWorkspaceWithMemberTx(ctx context.Context, tx pgx.Tx, name string, userID uuid.UUID) (models.Workspace, error) {
+	var ws models.Workspace
+	wsQuery := `INSERT INTO workspaces (name) VALUES ($1) RETURNING id, name, created_at, updated_at`
+
+	err := tx.QueryRow(ctx, wsQuery, name).Scan(&ws.ID, &ws.Name, &ws.CreatedAt, &ws.UpdatedAt)
+	if err != nil {
+		return models.Workspace{}, err
+	}
+
+	memberQuery := `INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, $3)`
+	_, err = tx.Exec(ctx, memberQuery, ws.ID, userID, "admin")
+
+	return ws, err
 }

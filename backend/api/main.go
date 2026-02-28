@@ -18,14 +18,17 @@ func main() {
 	defer pool.Close()
 
 	userRepo := db.NewUserRepository(pool)
+	boardRepo := db.NewBoardRepository(pool)
 	wsRepo := db.NewWorkspaceRepository(pool)
 	ticketRepo := db.NewTicketRepository(pool)
 
 	userService := services.NewUserService(userRepo)
-	wsService := services.NewWorkspaceService(wsRepo)
-	ticketService := services.NewTicketService(ticketRepo, wsRepo)
+	boardService := services.NewBoardService(boardRepo)
+	wsService := services.NewWorkspaceService(wsRepo, boardService)
+	ticketService := services.NewTicketService(ticketRepo, wsRepo, boardRepo)
 
 	userHandler := handlers.NewUserHandler(userService)
+	boardHandler := handlers.NewBoardHandler(boardService)
 	wsHandler := handlers.NewWorkspaceHandler(wsService)
 	ticketHandler := handlers.NewTicketHandler(ticketService)
 
@@ -59,6 +62,7 @@ func main() {
 		api.GET("/workspaces", wsHandler.GetUserWorkspaces)
 		api.GET("/workspaces/:id/members", wsHandler.GetWorkspaceMembers)
 		api.POST("/workspaces/:id/invite", wsHandler.InviteMember)
+		api.GET("/workspaces/:id/board", boardHandler.GetWorkspaceBoard)
 	}
 
 	log.Println("Server starting on :8080")

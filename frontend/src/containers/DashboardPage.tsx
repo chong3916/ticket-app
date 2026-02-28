@@ -33,7 +33,6 @@ export default function DashboardPage() {
                     <nav className="grid gap-1 px-4">
                         <Button variant="secondary" className="justify-start gap-3">
                             <LayoutDashboard className="h-4 w-4" />
-                            Board
                         </Button>
                         <Button variant="ghost" className="justify-start gap-3 text-muted-foreground">
                             <Users className="h-4 w-4" />

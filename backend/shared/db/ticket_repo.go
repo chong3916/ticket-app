@@ -193,3 +193,10 @@ func (r *TicketRepository) GetWorkspaceTickets(ctx context.Context, workspaceID 
 
 	return tickets, nil
 }
+
+func (r *TicketRepository) GetTicketWorkspaceID(ctx context.Context, ticketID uuid.UUID) (uuid.UUID, error) {
+	var wsID uuid.UUID
+	query := `SELECT workspace_id FROM tickets WHERE id = $1`
+	err := r.db.QueryRow(ctx, query, ticketID).Scan(&wsID)
+	return wsID, err
+}

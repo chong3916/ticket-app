@@ -50,7 +50,7 @@ func (s *TicketService) CreateTicket(ctx context.Context, workspaceID uuid.UUID,
 		AssigneeID:  assigneePtr,
 		Title:       title,
 		Description: description,
-		Status:      "open", // Default status
+		Status:      "todo", // Default status
 		Priority:    priority,
 		Tags:        tags,
 	}

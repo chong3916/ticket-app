@@ -26,6 +26,13 @@ type CreateTicketRequest struct {
 	Tags           []string `json:"tags"`
 }
 
+type UpdateTicketRequest struct {
+	Title       *string `json:"title"`
+	Description *string `json:"description"`
+	Status      *string `json:"status"`
+	Priority    *string `json:"priority"`
+}
+
 func (h *TicketHandler) CreateTicket(c *gin.Context) {
 	val, exists := c.Get("user_id")
 	if !exists {
@@ -126,9 +133,33 @@ func (h *TicketHandler) UpdateTicket(c *gin.Context) {
 	userIDStr := val.(string)
 	userID, _ := uuid.Parse(userIDStr)
 
-	var updates map[string]interface{}
-	if err := c.ShouldBindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+	var req struct {
+		Title       *string `json:"title" binding:"omitempty,min=1"`
+		Description *string `json:"description"`
+		Status      *string `json:"status"`
+		Priority    *string `json:"priority"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid update data"})
+		return
+	}
+
+	updates := make(map[string]interface{})
+	if req.Title != nil {
+		updates["title"] = *req.Title
+	}
+	if req.Description != nil {
+		updates["description"] = *req.Description
+	}
+	if req.Status != nil {
+		updates["status"] = *req.Status
+	}
+	if req.Priority != nil {
+		updates["priority"] = *req.Priority
+	}
+
+	if len(updates) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No valid fields to update"})
 		return
 	}
 

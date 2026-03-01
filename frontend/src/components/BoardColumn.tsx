@@ -6,11 +6,10 @@ interface BoardColumnProps {
     title: string;
     statusKey: string;
     tickets: any[];
-    onMoveTicket: (ticketId: string, status: string) => void;
     onCreateTicket: (status: string) => void;
 }
 
-export const BoardColumn = ({ title, statusKey, tickets, onMoveTicket, onCreateTicket }: BoardColumnProps) => {
+export const BoardColumn = ({ title, statusKey, tickets, onCreateTicket }: BoardColumnProps) => {
     return (
         <div className="flex flex-col bg-slate-100/50 rounded-lg p-4 w-full min-h-[600px] border border-slate-200">
             {/* Column Header */}
@@ -38,7 +37,6 @@ export const BoardColumn = ({ title, statusKey, tickets, onMoveTicket, onCreateT
                         <TicketCard
                             key={ticket.id}
                             ticket={ticket}
-                            onMove={(newStatus) => onMoveTicket(ticket.id, newStatus)}
                         />
                     ))
                 ) : (

@@ -24,29 +24,29 @@ export const TicketBoard = () => {
         setIsDrawerOpen(true);
     };
 
-    const handleUpdateStatus = async (ticketId: string, newStatus: string) => {
-        const queryKey = ['tickets', currentWorkspace?.id];
-        const previousTickets = queryClient.getQueryData(queryKey);
-
-        queryClient.setQueryData(queryKey, (old: any[]) => {
-            return old.map(t => t.id === ticketId ? { ...t, status: newStatus } : t);
-        });
-
-        try {
-            const res = await secureFetch(`/api/tickets/${ticketId}`, {
-                method: 'PATCH',
-                body: JSON.stringify({ status: newStatus }),
-            });
-
-            if (!res.ok) throw new Error();
-
-            queryClient.invalidateQueries({ queryKey });
-            toast.success("Status updated");
-        } catch (err) {
-            queryClient.setQueryData(queryKey, previousTickets);
-            toast.error("Failed to update status. Rolling back...");
-        }
-    };
+    // const handleUpdateStatus = async (ticketId: string, newStatus: string) => {
+    //     const queryKey = ['tickets', currentWorkspace?.id];
+    //     const previousTickets = queryClient.getQueryData(queryKey);
+    //
+    //     queryClient.setQueryData(queryKey, (old: any[]) => {
+    //         return old.map(t => t.id === ticketId ? { ...t, status: newStatus } : t);
+    //     });
+    //
+    //     try {
+    //         const res = await secureFetch(`/api/tickets/${ticketId}`, {
+    //             method: 'PATCH',
+    //             body: JSON.stringify({ status: newStatus }),
+    //         });
+    //
+    //         if (!res.ok) throw new Error();
+    //
+    //         queryClient.invalidateQueries({ queryKey });
+    //         toast.success("Status updated");
+    //     } catch (err) {
+    //         queryClient.setQueryData(queryKey, previousTickets);
+    //         toast.error("Failed to update status. Rolling back...");
+    //     }
+    // };
 
     const handleAddColumn = async (name: string) => {
         if (!name.trim()) return;
@@ -85,7 +85,6 @@ export const TicketBoard = () => {
                         title={col.name}
                         statusKey={col.status_key}
                         tickets={tickets?.filter((t: any) => t.status === col.status_key) || []}
-                        onMoveTicket={handleUpdateStatus}
                         onCreateTicket={handleCreateClick}
                     />
                 ))}

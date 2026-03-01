@@ -23,7 +23,7 @@ func NewTicketService(ticketRepo *db.TicketRepository, wsRepo *db.WorkspaceRepos
 	}
 }
 
-func (s *TicketService) CreateTicket(ctx context.Context, workspaceID uuid.UUID, creatorID uuid.UUID, assigneeID uuid.UUID, title string, description string, priority string, tags []string) (models.Ticket, error) {
+func (s *TicketService) CreateTicket(ctx context.Context, workspaceID uuid.UUID, creatorID uuid.UUID, assigneeID uuid.UUID, title string, description string, status string, priority string, tags []string) (models.Ticket, error) {
 	isMember, err := s.WorkspaceRepo.IsMember(ctx, workspaceID, creatorID)
 	if err != nil {
 		return models.Ticket{}, err
@@ -46,9 +46,14 @@ func (s *TicketService) CreateTicket(ctx context.Context, workspaceID uuid.UUID,
 	if err != nil {
 		return models.Ticket{}, errors.New("could not find board configuration for this workspace")
 	}
-	defaultStatus := "todo"
-	if len(board.Columns) > 0 {
-		defaultStatus = board.Columns[0].StatusKey
+
+	finalStatus := status
+	if finalStatus == "" {
+		if len(board.Columns) == 0 {
+			finalStatus = "todo"
+		} else {
+			finalStatus = board.Columns[0].StatusKey
+		}
 	}
 
 	var assigneePtr *uuid.UUID
@@ -62,7 +67,7 @@ func (s *TicketService) CreateTicket(ctx context.Context, workspaceID uuid.UUID,
 		AssigneeID:  assigneePtr,
 		Title:       title,
 		Description: description,
-		Status:      defaultStatus, // Default status
+		Status:      finalStatus,
 		Priority:    priority,
 		Tags:        tags,
 	}

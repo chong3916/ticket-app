@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useApi } from '../hooks/useApi';
 import { toast } from "sonner";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field.tsx";
@@ -10,7 +10,6 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog"
 import {
     Drawer,
@@ -19,16 +18,22 @@ import {
     DrawerFooter,
     DrawerHeader,
     DrawerTitle,
-    DrawerTrigger,
 } from "@/components/ui/drawer"
-import { Plus } from "lucide-react";
 import { useWorkspace } from "@/context/WorkspaceContext.tsx";
 
-const CreateTicketForm = ({ onSuccess }: { onSuccess: () => void }) => {
+const CreateTicketForm = ({ onSuccess, defaultStatus }: { onSuccess: () => void, defaultStatus?: string }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
+    const [status, setStatus] = useState(defaultStatus || 'todo');
+
     const { secureFetch } = useApi();
     const { currentWorkspace } = useWorkspace();
+
+    useEffect(() => {
+        if (defaultStatus) {
+            setStatus(defaultStatus);
+        }
+    }, [defaultStatus]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -42,6 +47,7 @@ const CreateTicketForm = ({ onSuccess }: { onSuccess: () => void }) => {
             workspace_id_str: currentWorkspace.id,
             title: title,
             description: description,
+            status: status,
             priority: "medium",
             tags: []
         };
@@ -97,53 +103,41 @@ const CreateTicketForm = ({ onSuccess }: { onSuccess: () => void }) => {
     )
 }
 
-export const CreateTicketDrawer = ({ onTodoCreated }: { onTodoCreated: () => void }) => {
+export const CreateTicketDrawer = ({ open, setOpen, onTodoCreated, defaultStatus }: {
+    open: boolean;
+    setOpen: (open: boolean) => void;
+    onTodoCreated: () => void;
+    defaultStatus?: string;
+}) => {
     const isDesktop = useMediaQuery("(min-width: 768px)")
-    const [open, setOpen] = useState(false)
 
-    const handleSuccess = () => setOpen(false);
+    const content = (
+        <CreateTicketForm
+            defaultStatus={defaultStatus}
+            onSuccess={() => {
+                setOpen(false);
+                onTodoCreated();
+            }}
+        />
+    );
 
     if (isDesktop) {
         return (
-            <Dialog open={ open } onOpenChange={ setOpen }>
-                <DialogTrigger asChild>
-                    <Button variant="outline">
-                        <Plus className="h-4 w-4"/>New Task
-                    </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                        <DialogTitle>New Todo Task</DialogTitle>
-                    </DialogHeader>
-                    <CreateTicketForm onSuccess={() => {
-                        handleSuccess();
-                        onTodoCreated();
-                    }}/>
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogContent>
+                    <DialogHeader><DialogTitle>New Task</DialogTitle></DialogHeader>
+                    {content}
                 </DialogContent>
             </Dialog>
-        )
+        );
     }
 
     return (
-        <Drawer open={ open } onOpenChange={ setOpen }>
-            <DrawerTrigger asChild>
-                <Button variant="outline">
-                    <Plus className="h-4 w-4"/>New Task
-                </Button>
-            </DrawerTrigger>
+        <Drawer open={open} onOpenChange={setOpen}>
             <DrawerContent>
-                <DrawerHeader className="text-left">
-                    <DrawerTitle>New Todo Task</DrawerTitle>
-                </DrawerHeader>
-                <CreateTicketForm onSuccess={() => {
-                    handleSuccess();
-                    onTodoCreated();
-                }} />
-                <DrawerFooter className="pt-2">
-                    <DrawerClose asChild>
-                        <Button variant="outline">Cancel</Button>
-                    </DrawerClose>
-                </DrawerFooter>
+                <DrawerHeader><DrawerTitle>New Task</DrawerTitle></DrawerHeader>
+                {content}
+                <DrawerFooter><DrawerClose asChild><Button variant="outline">Cancel</Button></DrawerClose></DrawerFooter>
             </DrawerContent>
         </Drawer>
     );

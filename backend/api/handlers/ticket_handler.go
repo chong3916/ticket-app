@@ -21,6 +21,7 @@ type CreateTicketRequest struct {
 	AssigneeIDStr  string   `json:"assignee_id_str"`
 	Title          string   `json:"title" binding:"required"`
 	Description    string   `json:"description"`
+	Status         string   `json:"status"`
 	Priority       string   `json:"priority"`
 	Tags           []string `json:"tags"`
 }
@@ -75,7 +76,7 @@ func (h *TicketHandler) CreateTicket(c *gin.Context) {
 		assigneeID = uuid.Nil
 	}
 
-	result, err := h.Service.CreateTicket(c.Request.Context(), workspaceID, userID, assigneeID, req.Title, req.Description, req.Priority, req.Tags)
+	result, err := h.Service.CreateTicket(c.Request.Context(), workspaceID, userID, assigneeID, req.Title, req.Description, req.Status, req.Priority, req.Tags)
 	if err != nil {
 		log.Printf("CreateTicket Error: %v", err)
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})

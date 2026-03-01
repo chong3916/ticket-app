@@ -32,9 +32,9 @@ export const WorkspaceSwitcher = () => {
                     <Building2 className="h-4 w-4" />
                     <SelectValue placeholder="Select Workspace" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
                     {workspaces?.map((ws: any) => (
-                        <SelectItem key={ws.id} value={ws.id}>
+                        <SelectItem key={ws.id} value={ws.id} className="w-full">
                             {ws.name}
                         </SelectItem>
                     ))}

@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { useWorkspaceBoard } from "@/hooks/useWorkspaceBoard.ts";
 import { BoardColumn } from "@/components/BoardColumn.tsx";
 import { AddColumnButton } from "@/components/AddColumnButton.tsx";
+import { useState } from "react";
+import { CreateTicketDrawer } from "@/components/CreateTicketDrawer.tsx";
 
 export const TicketBoard = () => {
     const { currentWorkspace } = useWorkspace();
@@ -13,6 +15,14 @@ export const TicketBoard = () => {
     const { data: tickets, isLoading: ticketsLoading } = useWorkspaceTickets();
     const { secureFetch } = useApi();
     const queryClient = useQueryClient();
+
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [activeStatus, setActiveStatus] = useState<string | undefined>();
+
+    const handleCreateClick = (status: string) => {
+        setActiveStatus(status);
+        setIsDrawerOpen(true);
+    };
 
     const handleUpdateStatus = async (ticketId: string, newStatus: string) => {
         const queryKey = ['tickets', currentWorkspace?.id];
@@ -76,11 +86,18 @@ export const TicketBoard = () => {
                         statusKey={col.status_key}
                         tickets={tickets?.filter((t: any) => t.status === col.status_key) || []}
                         onMoveTicket={handleUpdateStatus}
-                        onCreateTicket={(status) => console.log("Open Modal for:", status)}
+                        onCreateTicket={handleCreateClick}
                     />
                 ))}
                 <AddColumnButton onAdd={handleAddColumn} />
             </div>
+
+            <CreateTicketDrawer
+                open={isDrawerOpen}
+                setOpen={setIsDrawerOpen}
+                defaultStatus={activeStatus}
+                onTodoCreated={() => queryClient.invalidateQueries({ queryKey: ['tickets', currentWorkspace?.id] })}
+            />
         </div>
     );
 };

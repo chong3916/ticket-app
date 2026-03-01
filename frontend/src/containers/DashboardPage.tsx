@@ -1,20 +1,13 @@
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { LogOut, LayoutDashboard, Settings, Users } from "lucide-react";
-import { CreateTicketDrawer } from "@/components/CreateTicketDrawer.tsx";
 import { TicketBoard } from "@/components/TicketBoard.tsx";
 import { WorkspaceSwitcher } from "@/components/WorkspaceSwitcher.tsx";
 import { useWorkspace } from "@/context/WorkspaceContext";
-import { useQueryClient } from "@tanstack/react-query";
 
 export default function DashboardPage() {
     const { logout } = useAuth();
     const { currentWorkspace } = useWorkspace();
-    const queryClient = useQueryClient();
-
-    const handleRefresh = () => {
-        queryClient.invalidateQueries({ queryKey: ['tickets', currentWorkspace?.id] });
-    };
 
     return (
         <div className="flex min-h-screen w-full bg-slate-50/50">
@@ -33,6 +26,7 @@ export default function DashboardPage() {
                     <nav className="grid gap-1 px-4">
                         <Button variant="secondary" className="justify-start gap-3">
                             <LayoutDashboard className="h-4 w-4" />
+                            Board
                         </Button>
                         <Button variant="ghost" className="justify-start gap-3 text-muted-foreground">
                             <Users className="h-4 w-4" />
@@ -60,10 +54,6 @@ export default function DashboardPage() {
                         <span className="text-muted-foreground">Workspaces</span>
                         <span className="text-muted-foreground">/</span>
                         <span className="font-semibold">{currentWorkspace?.name || "Select Workspace"}</span>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                        <CreateTicketDrawer onTodoCreated={handleRefresh} />
                     </div>
                 </header>
 

@@ -114,7 +114,7 @@ func (h *TicketHandler) GetCreatorTicket(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func (h *TicketHandler) UpdateTicketStatus(c *gin.Context) {
+func (h *TicketHandler) UpdateTicket(c *gin.Context) {
 	idParam := c.Param("id")
 	ticketID, err := uuid.Parse(idParam)
 	if err != nil {
@@ -126,23 +126,15 @@ func (h *TicketHandler) UpdateTicketStatus(c *gin.Context) {
 	userIDStr := val.(string)
 	userID, _ := uuid.Parse(userIDStr)
 
-	// Bind the request body
-	var req struct {
-		Status string `json:"status"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
+	var updates map[string]interface{}
+	if err := c.ShouldBindJSON(&updates); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
-	// Update
-	err = h.Service.UpdateTicketStatus(c.Request.Context(), ticketID, userID, req.Status)
+	err = h.Service.UpdateTicket(c.Request.Context(), ticketID, userID, updates)
 	if err != nil {
-		if err.Error() == "ticket not found or unauthorized: must be a workspace member" {
-			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update ticket"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 

@@ -3,9 +3,11 @@ package db
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/chong3916/todo-app/backend/shared/models"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"strings"
 )
 
 type TicketRepository struct {
@@ -107,25 +109,45 @@ func (r *TicketRepository) GetCreatorTicket(ctx context.Context, creatorID uuid.
 	return tickets, nil
 }
 
-func (r *TicketRepository) UpdateTicketStatus(ctx context.Context, ticketID uuid.UUID, userID uuid.UUID, status string) error {
+func (r *TicketRepository) UpdateTicket(ctx context.Context, ticketID uuid.UUID, userID uuid.UUID, updates map[string]interface{}) error {
+	if len(updates) == 0 {
+		return nil
+	}
+
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx)
 
-	var updatedTicket models.Ticket
-	query := `
-        UPDATE tickets t
-        SET status = $1, updated_at = NOW()
-        FROM workspace_members wm
-        WHERE t.id = $2 
-          AND t.workspace_id = wm.workspace_id 
-          AND wm.user_id = $3
-        RETURNING t.id, t.workspace_id, t.creator_id, t.assignee_id, t.title, t.description, t.priority, t.status, t.tags, t.created_at, t.updated_at
-    `
+	setClauses := []string{"updated_at = NOW()"}
+	args := []interface{}{ticketID, userID}
+	argCount := 3
 
-	err = tx.QueryRow(ctx, query, status, ticketID, userID).Scan(
+	for field, value := range updates {
+		// Whitelist allowed fields to prevent SQL injection or accidental overwrites
+		allowed := map[string]bool{"title": true, "description": true, "status": true, "priority": true}
+		if !allowed[field] {
+			continue
+		}
+
+		setClauses = append(setClauses, fmt.Sprintf("%s = $%d", field, argCount))
+		args = append(args, value)
+		argCount++
+	}
+
+	query := fmt.Sprintf(`
+        UPDATE tickets t
+        SET %s
+        FROM workspace_members wm
+        WHERE t.id = $1 
+          AND t.workspace_id = wm.workspace_id 
+          AND wm.user_id = $2
+        RETURNING t.id, t.workspace_id, t.creator_id, t.assignee_id, t.title, t.description, t.priority, t.status, t.tags, t.created_at, t.updated_at
+    `, strings.Join(setClauses, ", "))
+
+	var updatedTicket models.Ticket
+	err = tx.QueryRow(ctx, query, args...).Scan(
 		&updatedTicket.ID, &updatedTicket.WorkspaceID, &updatedTicket.CreatorID,
 		&updatedTicket.AssigneeID, &updatedTicket.Title, &updatedTicket.Description,
 		&updatedTicket.Priority, &updatedTicket.Status, &updatedTicket.Tags,
@@ -136,11 +158,8 @@ func (r *TicketRepository) UpdateTicketStatus(ctx context.Context, ticketID uuid
 		return errors.New("ticket not found or unauthorized: must be a workspace member")
 	}
 
-	outboxQuery := `
-       INSERT INTO outbox (payload, event_type) 
-       VALUES ($1, $2)
-    `
-	_, err = tx.Exec(ctx, outboxQuery, updatedTicket, "ticket_status_updated")
+	outboxQuery := `INSERT INTO outbox (payload, event_type) VALUES ($1, $2)`
+	_, err = tx.Exec(ctx, outboxQuery, updatedTicket, "ticket_updated")
 	if err != nil {
 		return err
 	}

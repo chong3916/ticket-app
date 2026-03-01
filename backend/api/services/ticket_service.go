@@ -89,30 +89,32 @@ func (s *TicketService) GetCreatorTicket(ctx context.Context, userID uuid.UUID) 
 	return result, nil
 }
 
-func (s *TicketService) UpdateTicketStatus(ctx context.Context, ticketID uuid.UUID, userID uuid.UUID, status string) error {
+func (s *TicketService) UpdateTicket(ctx context.Context, ticketID uuid.UUID, userID uuid.UUID, updates map[string]interface{}) error {
 	workspaceID, err := s.TicketRepo.GetTicketWorkspaceID(ctx, ticketID)
 	if err != nil {
 		return errors.New("ticket not found")
 	}
 
-	board, err := s.BoardRepo.GetWorkspaceBoard(ctx, workspaceID)
-	if err != nil {
-		return errors.New("failed to fetch board configuration for this ticket")
-	}
+	if status, ok := updates["status"].(string); ok {
+		board, err := s.BoardRepo.GetWorkspaceBoard(ctx, workspaceID)
+		if err != nil {
+			return errors.New("failed to fetch board configuration for this ticket")
+		}
 
-	isValid := false
-	for _, col := range board.Columns {
-		if col.StatusKey == status {
-			isValid = true
-			break
+		isValid := false
+		for _, col := range board.Columns {
+			if col.StatusKey == status {
+				isValid = true
+				break
+			}
+		}
+
+		if !isValid {
+			return fmt.Errorf("invalid status: '%s' does not exist on this board", status)
 		}
 	}
 
-	if !isValid {
-		return fmt.Errorf("invalid status: '%s' does not exist on this board", status)
-	}
-
-	return s.TicketRepo.UpdateTicketStatus(ctx, ticketID, userID, status)
+	return s.TicketRepo.UpdateTicket(ctx, ticketID, userID, updates)
 }
 
 func (s *TicketService) GetWorkspaceTickets(ctx context.Context, workspaceID uuid.UUID, userID uuid.UUID) ([]models.Ticket, error) {

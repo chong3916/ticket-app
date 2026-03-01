@@ -20,11 +20,19 @@ import {
     DrawerTitle,
 } from "@/components/ui/drawer"
 import { useWorkspace } from "@/context/WorkspaceContext.tsx";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
 
 const CreateTicketForm = ({ onSuccess, defaultStatus }: { onSuccess: () => void, defaultStatus?: string }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [status, setStatus] = useState(defaultStatus || 'todo');
+    const [priority, setPriority] = useState('medium');
 
     const { secureFetch } = useApi();
     const { currentWorkspace } = useWorkspace();
@@ -32,6 +40,9 @@ const CreateTicketForm = ({ onSuccess, defaultStatus }: { onSuccess: () => void,
     useEffect(() => {
         if (defaultStatus) {
             setStatus(defaultStatus);
+            setTitle('');
+            setDescription('');
+            setPriority('medium');
         }
     }, [defaultStatus]);
 
@@ -44,11 +55,11 @@ const CreateTicketForm = ({ onSuccess, defaultStatus }: { onSuccess: () => void,
         }
 
         const payload = {
-            workspace_id_str: currentWorkspace.id,
-            title: title,
-            description: description,
-            status: status,
-            priority: "medium",
+            workspace_id_str: currentWorkspace?.id,
+            title,
+            description,
+            status,
+            priority,
             tags: []
         };
 
@@ -95,6 +106,21 @@ const CreateTicketForm = ({ onSuccess, defaultStatus }: { onSuccess: () => void,
                         placeholder="Add more details..."
                     />
                 </Field>
+                <Field>
+                    <FieldLabel>Priority</FieldLabel>
+                    <Select value={priority} onValueChange={setPriority}>
+                        <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select Priority" />
+                        </SelectTrigger>
+                        <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
+                            <SelectItem value="low">Low</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="high">High</SelectItem>
+                            <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </Field>
+
                 <Button type="submit" className="w-full" disabled={!currentWorkspace}>
                     {currentWorkspace ? `Create Ticket` : "Select a Workspace"}
                 </Button>

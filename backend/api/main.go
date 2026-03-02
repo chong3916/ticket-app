@@ -56,6 +56,7 @@ func main() {
 		api.GET("/tickets", ticketHandler.GetCreatorTicket)
 		api.POST("/tickets", ticketHandler.CreateTicket)
 		api.PATCH("/tickets/:id", ticketHandler.UpdateTicket)
+		api.DELETE("/tickets/:id", ticketHandler.DeleteTicket)
 
 		api.GET("/workspaces/:id/tickets", ticketHandler.GetWorkspaceTickets)
 

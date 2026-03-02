@@ -219,3 +219,27 @@ func (r *TicketRepository) GetTicketWorkspaceID(ctx context.Context, ticketID uu
 	err := r.db.QueryRow(ctx, query, ticketID).Scan(&wsID)
 	return wsID, err
 }
+
+func (r *TicketRepository) DeleteTicket(ctx context.Context, ticketID uuid.UUID) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// Delete ticket
+	query := `DELETE FROM tickets WHERE id = $1`
+	_, err = tx.Exec(ctx, query, ticketID)
+	if err != nil {
+		return err
+	}
+
+	// Publish event
+	outboxQuery := `INSERT INTO outbox (payload, event_type) VALUES ($1, $2)`
+	_, err = tx.Exec(ctx, outboxQuery, map[string]interface{}{"id": ticketID}, "ticket_deleted")
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}

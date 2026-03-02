@@ -149,3 +149,18 @@ func (s *TicketService) GetWorkspaceTickets(ctx context.Context, workspaceID uui
 
 	return s.TicketRepo.GetWorkspaceTickets(ctx, workspaceID)
 }
+
+func (s *TicketService) DeleteTicket(ctx context.Context, ticketID, userID uuid.UUID) error {
+	// Check permission
+	workspaceID, err := s.TicketRepo.GetTicketWorkspaceID(ctx, ticketID)
+	if err != nil {
+		return errors.New("ticket not found")
+	}
+
+	isMember, err := s.WorkspaceRepo.IsMember(ctx, workspaceID, userID)
+	if err != nil || !isMember {
+		return errors.New("forbidden")
+	}
+
+	return s.TicketRepo.DeleteTicket(ctx, ticketID)
+}

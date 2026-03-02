@@ -9,10 +9,12 @@ import { useWorkspace } from "@/context/WorkspaceContext";
 import { useUserWorkspaces } from "@/hooks/useUserWorkspaces.ts";
 import { Building2 } from "lucide-react";
 import { CreateWorkspaceDrawer } from "@/components/CreateWorkspaceDrawer.tsx";
+import { useNavigate } from "react-router-dom";
 
 export const WorkspaceSwitcher = () => {
     const { currentWorkspace, setWorkspace } = useWorkspace();
     const { data: workspaces, isLoading } = useUserWorkspaces();
+    const navigate = useNavigate();
 
     if (isLoading) return <div className="h-10 w-full animate-pulse bg-muted rounded-md" />;
 
@@ -25,7 +27,10 @@ export const WorkspaceSwitcher = () => {
                 value={currentWorkspace?.id}
                 onValueChange={(id) => {
                     const selected = workspaces?.find((w: any) => w.id === id);
-                    if (selected) setWorkspace(selected);
+                    if (selected) {
+                        setWorkspace(selected);
+                        navigate(`/workspaces/${id}/board`);
+                    }
                 }}
             >
                 <SelectTrigger className="w-full flex gap-2">

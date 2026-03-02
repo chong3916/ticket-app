@@ -1,6 +1,6 @@
 .PHONY: dev-infra dev-services stop
 
-export DATABASE_URL=postgres://user:password@localhost:5432/todo_db?sslmode=disable
+export DATABASE_URL=postgres://user:password@localhost:5432/tickets_db?sslmode=disable
 export RABBITMQ_URL=amqp://guest:guest@localhost:5672/
 export JWT_SECRET=CHANGE_ME
 

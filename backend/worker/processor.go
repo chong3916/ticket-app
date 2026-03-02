@@ -14,15 +14,11 @@ type TaskProcessor struct {
 }
 
 func (p *TaskProcessor) ProcessTask(ctx context.Context, task models.Outbox) {
-	var err error
-
-	switch task.EventType {
-	case "todo_created":
-		err = p.broker.Publish("todo_events", task.Payload)
-	default:
-		log.Printf("Unknown event type: %s", task.EventType)
-		return
+	wrappedPayload := map[string]interface{}{
+		"type": task.EventType,
+		"data": task.Payload,
 	}
+	err := p.broker.Publish("ticket_events", wrappedPayload)
 
 	if err != nil {
 		log.Printf("Failed to publish event: %v", err)

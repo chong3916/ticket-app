@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/cors"
 	"log"
-	"net/http"
 	"os"
 )
 
@@ -19,15 +18,22 @@ func main() {
 	defer pool.Close()
 
 	userRepo := db.NewUserRepository(pool)
-	todoRepo := db.NewTodoRepository(pool)
+	boardRepo := db.NewBoardRepository(pool)
+	wsRepo := db.NewWorkspaceRepository(pool)
+	ticketRepo := db.NewTicketRepository(pool)
 
 	userService := services.NewUserService(userRepo)
-	todoService := services.NewTodoService(todoRepo)
+	boardService := services.NewBoardService(boardRepo)
+	wsService := services.NewWorkspaceService(wsRepo, boardService)
+	ticketService := services.NewTicketService(ticketRepo, wsRepo, boardRepo)
 
 	userHandler := handlers.NewUserHandler(userService)
-	todoHandler := handlers.NewTodoHandler(todoService)
+	boardHandler := handlers.NewBoardHandler(boardService)
+	wsHandler := handlers.NewWorkspaceHandler(wsService)
+	ticketHandler := handlers.NewTicketHandler(ticketService)
 
 	r := gin.Default()
+	r.Use(middleware.ErrorLogger())
 
 	// CORS
 	c := cors.New(cors.Options{
@@ -35,6 +41,9 @@ func main() {
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		AllowCredentials: true,
+	})
+	r.Use(func(ctx *gin.Context) {
+		c.HandlerFunc(ctx.Writer, ctx.Request)
 	})
 
 	r.POST("/register", userHandler.Register)
@@ -44,11 +53,22 @@ func main() {
 	api := r.Group("/api")
 	api.Use(middleware.AuthMiddleware())
 	{
-		api.GET("/todos", todoHandler.GetUserTodo)
-		api.POST("/todos", todoHandler.CreateTodo)
-		api.PATCH("/todos/:id", todoHandler.UpdateTodoStatus)
+		api.GET("/tickets", ticketHandler.GetCreatorTicket)
+		api.POST("/tickets", ticketHandler.CreateTicket)
+		api.PATCH("/tickets/:id", ticketHandler.UpdateTicket)
+		api.DELETE("/tickets/:id", ticketHandler.DeleteTicket)
+
+		api.GET("/workspaces/:id/tickets", ticketHandler.GetWorkspaceTickets)
+
+		api.POST("/workspaces", wsHandler.CreateWorkspace)
+		api.GET("/workspaces", wsHandler.GetUserWorkspaces)
+		api.GET("/workspaces/:id/members", wsHandler.GetWorkspaceMembers)
+		api.POST("/workspaces/:id/invite", wsHandler.InviteMember)
+		api.GET("/workspaces/:id/board", boardHandler.GetWorkspaceBoard)
+		api.POST("/workspaces/:id/board/columns", boardHandler.AddColumn)
 	}
 
 	log.Println("Server starting on :8080")
-	http.ListenAndServe(":8080", c.Handler(r))
+
+	r.Run(":8080")
 }

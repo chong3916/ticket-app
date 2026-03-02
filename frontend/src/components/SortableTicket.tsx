@@ -1,8 +1,9 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { TicketCard } from "./TicketCard";
+import type { Ticket } from "@/types/ticket.ts";
+import { TicketCard } from "@/components/TicketCard.tsx";
 
-export const SortableTicket = ({ ticket }: { ticket: any }) => {
+export const SortableTicket = ({ ticket, onClick }: { ticket: Ticket, onClick: () => void }) => {
     const {
         attributes,
         listeners,
@@ -20,7 +21,7 @@ export const SortableTicket = ({ ticket }: { ticket: any }) => {
     };
 
     return (
-        <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+        <div ref={setNodeRef} style={style} {...attributes} {...listeners} onClick={onClick}>
             <TicketCard ticket={ticket} />
         </div>
     );

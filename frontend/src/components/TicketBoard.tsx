@@ -20,7 +20,8 @@ import {
     rectIntersection,
     pointerWithin,
 } from "@dnd-kit/core";
-import { TicketCard } from "./TicketCard";
+import { TicketDialog } from "./TicketDialog.tsx";
+import { TicketCard } from "@/components/TicketCard.tsx";
 
 export const TicketBoard = () => {
     const { currentWorkspace } = useWorkspace();
@@ -32,6 +33,10 @@ export const TicketBoard = () => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [activeStatus, setActiveStatus] = useState<string | undefined>();
     const [activeTicket, setActiveTicket] = useState<any | null>(null);
+
+    const [viewingTicketId, setViewingTicketId] = useState<string | null>(null);
+
+    const viewingTicket = tickets?.find((t: any) => t.id === viewingTicketId);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -139,11 +144,19 @@ export const TicketBoard = () => {
                             statusKey={col.status_key}
                             tickets={tickets?.filter((t: any) => t.status === col.status_key) || []}
                             onCreateTicket={handleCreateClick}
+                            onTicketClick={(ticket) => setViewingTicketId(ticket.id)}
                         />
                     ))}
                     <AddColumnButton onAdd={handleAddColumn} />
                 </div>
             </div>
+
+            <TicketDialog
+                open={!!viewingTicketId}
+                onOpenChange={(open) => !open && setViewingTicketId(null)}
+                ticket={viewingTicket}
+                board={board}
+            />
 
             <DragOverlay dropAnimation={{
                 sideEffects: defaultDropAnimationSideEffects({

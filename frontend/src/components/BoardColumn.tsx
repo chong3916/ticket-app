@@ -9,11 +9,12 @@ interface BoardColumnProps {
     id: string;
     title: string;
     statusKey: string;
-    tickets: any[];
+    tickets: Ticket[];
     onCreateTicket: (status: string) => void;
+    onTicketClick: (ticket: Ticket) => void;
 }
 
-export const BoardColumn = ({ id, title, statusKey, tickets, onCreateTicket }: BoardColumnProps) => {
+export const BoardColumn = ({ id, title, statusKey, tickets, onCreateTicket, onTicketClick }: BoardColumnProps) => {
     const { setNodeRef, isOver } = useDroppable({ id });
 
     return (
@@ -46,7 +47,7 @@ export const BoardColumn = ({ id, title, statusKey, tickets, onCreateTicket }: B
                 <div className="space-y-4 flex-1">
                     {tickets.length > 0 ? (
                         tickets.map((ticket: Ticket) => (
-                            <SortableTicket key={ticket.id} ticket={ticket} />
+                            <SortableTicket key={ticket.id} ticket={ticket} onClick={() => onTicketClick(ticket)} />
                         ))
                     ) : (
                         <div className="h-24 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400 text-xs italic">

@@ -13,11 +13,11 @@ export const Sidebar = () => {
     const getPath = (tab: string) =>
         currentWorkspace ? `/workspaces/${currentWorkspace.id}/${tab}` : "/";
 
-    const navItems = [
+    const navItems = currentWorkspace ? [
         { label: "Board", icon: LayoutDashboard, path: getPath("board") },
         { label: "Members", icon: Users, path: getPath("members") },
         { label: "Settings", icon: Settings, path: getPath("settings") },
-    ];
+    ] : [];
 
     return (
         <aside className="hidden w-64 border-r bg-white md:block">
@@ -49,6 +49,11 @@ export const Sidebar = () => {
                             {item.label}
                         </NavLink>
                     ))}
+                    {navItems.length === 0 && (
+                        <p className="text-xs px-3 text-muted-foreground italic">
+                            Select a workspace to see options
+                        </p>
+                    )}
                 </nav>
 
                 <div className="mt-auto p-4 border-t">

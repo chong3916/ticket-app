@@ -16,6 +16,8 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { InlineInput, InlineTextarea } from "@/components/InlineInput.tsx";
+import { DeleteTicketDialog } from "@/components/DeleteTicketDialog.tsx";
+import { Button } from "@/components/ui/button"
 
 const priorities = ["low", "medium", "high", "urgent"];
 
@@ -32,6 +34,7 @@ export const TicketDialog = ({ ticket, board, members, open, onOpenChange }: { t
     const { secureFetch } = useApi();
     const queryClient = useQueryClient();
     const [isUpdating, setIsUpdating] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const handleUpdate = async (field: string, value: string) => {
         if (ticket[field] === value) return;
@@ -62,6 +65,32 @@ export const TicketDialog = ({ ticket, board, members, open, onOpenChange }: { t
             toast.error("Failed to update");
         } finally {
             setIsUpdating(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        setIsDeleting(true);
+        const queryKey = ["tickets", ticket.workspace_id];
+        const previousTickets = queryClient.getQueryData(queryKey);
+
+        queryClient.setQueryData(queryKey, (old: any[] | undefined) =>
+            old?.filter((t) => t.id !== ticket.id) || []
+        );
+
+        onOpenChange(false);
+
+        try {
+            const res = await secureFetch(`/api/tickets/${ticket.id}`, {
+                method: "DELETE",
+            });
+
+            if (!res.ok) throw new Error();
+            toast.success("Ticket deleted successfully");
+        } catch (err) {
+            queryClient.setQueryData(queryKey, previousTickets);
+            toast.error("Failed to delete ticket");
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -126,7 +155,7 @@ export const TicketDialog = ({ ticket, board, members, open, onOpenChange }: { t
                             </SelectContent>
                         </Select>
 
-                        {isUpdating && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                        {(isUpdating || isDeleting) && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 border-t pt-4">
@@ -160,6 +189,13 @@ export const TicketDialog = ({ ticket, board, members, open, onOpenChange }: { t
                             </p>
                         </div>
                     </div>
+                </div>
+
+                <div className="flex justify-between items-center border-t pt-4 mt-6">
+                    <DeleteTicketDialog ticket={ticket} handleDelete={handleDelete} />
+                    <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                        Close
+                    </Button>
                 </div>
             </DialogContent>
         </Dialog>

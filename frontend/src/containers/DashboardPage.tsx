@@ -1,51 +1,13 @@
-import { useAuth } from "@/context/AuthContext";
-import { Button } from "@/components/ui/button";
-import { LogOut, LayoutDashboard, Settings, Users } from "lucide-react";
 import { TicketBoard } from "@/components/TicketBoard.tsx";
-import { WorkspaceSwitcher } from "@/components/WorkspaceSwitcher.tsx";
 import { useWorkspace } from "@/context/WorkspaceContext";
+import { Sidebar } from "@/components/Sidebar.tsx";
 
 export default function DashboardPage() {
-    const { logout } = useAuth();
     const { currentWorkspace } = useWorkspace();
 
     return (
         <div className="flex min-h-screen w-full bg-slate-50/50">
-            {/* Sidebar */}
-            <aside className="hidden w-64 border-r bg-white md:block">
-                <div className="flex h-full flex-col gap-4">
-                    <div className="flex items-center gap-2 font-bold px-6 py-6 text-xl">
-                        <div className="bg-primary text-white p-1 rounded">
-                            <LayoutDashboard className="h-5 w-5" />
-                        </div>
-                        <span>TaskMaster</span>
-                    </div>
-
-                    <WorkspaceSwitcher />
-
-                    <nav className="grid gap-1 px-4">
-                        <Button variant="secondary" className="justify-start gap-3">
-                            <LayoutDashboard className="h-4 w-4" />
-                            Board
-                        </Button>
-                        <Button variant="ghost" className="justify-start gap-3 text-muted-foreground">
-                            <Users className="h-4 w-4" />
-                            Members
-                        </Button>
-                        <Button variant="ghost" className="justify-start gap-3 text-muted-foreground">
-                            <Settings className="h-4 w-4" />
-                            Settings
-                        </Button>
-                    </nav>
-
-                    <div className="mt-auto p-4 border-t">
-                        <Button variant="ghost" onClick={logout} className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10">
-                            <LogOut className="h-4 w-4" />
-                            Logout
-                        </Button>
-                    </div>
-                </div>
-            </aside>
+            <Sidebar />
 
             {/* Main Content */}
             <div className="flex flex-1 flex-col">

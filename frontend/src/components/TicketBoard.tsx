@@ -8,6 +8,19 @@ import { BoardColumn } from "@/components/BoardColumn.tsx";
 import { AddColumnButton } from "@/components/AddColumnButton.tsx";
 import { useState } from "react";
 import { CreateTicketDrawer } from "@/components/CreateTicketDrawer.tsx";
+import {
+    DndContext,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+    type DragStartEvent,
+    DragOverlay,
+    defaultDropAnimationSideEffects,
+    rectIntersection,
+    pointerWithin,
+} from "@dnd-kit/core";
+import { TicketCard } from "./TicketCard";
 
 export const TicketBoard = () => {
     const { currentWorkspace } = useWorkspace();
@@ -18,35 +31,68 @@ export const TicketBoard = () => {
 
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [activeStatus, setActiveStatus] = useState<string | undefined>();
+    const [activeTicket, setActiveTicket] = useState<any | null>(null);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: { distance: 8 }
+        })
+    );
 
     const handleCreateClick = (status: string) => {
         setActiveStatus(status);
         setIsDrawerOpen(true);
     };
 
-    // const handleUpdateStatus = async (ticketId: string, newStatus: string) => {
-    //     const queryKey = ['tickets', currentWorkspace?.id];
-    //     const previousTickets = queryClient.getQueryData(queryKey);
-    //
-    //     queryClient.setQueryData(queryKey, (old: any[]) => {
-    //         return old.map(t => t.id === ticketId ? { ...t, status: newStatus } : t);
-    //     });
-    //
-    //     try {
-    //         const res = await secureFetch(`/api/tickets/${ticketId}`, {
-    //             method: 'PATCH',
-    //             body: JSON.stringify({ status: newStatus }),
-    //         });
-    //
-    //         if (!res.ok) throw new Error();
-    //
-    //         queryClient.invalidateQueries({ queryKey });
-    //         toast.success("Status updated");
-    //     } catch (err) {
-    //         queryClient.setQueryData(queryKey, previousTickets);
-    //         toast.error("Failed to update status. Rolling back...");
-    //     }
-    // };
+    const handleDragStart = (event: DragStartEvent) => {
+        const { active } = event;
+        const ticket = tickets?.find((t: any) => t.id === active.id);
+        setActiveTicket(ticket);
+    };
+
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event;
+        setActiveTicket(null);
+
+        if (!over) return;
+
+        const ticketId = active.id as string;
+        const newStatus = over.id as string;
+
+        const queryKey = ['tickets', currentWorkspace?.id];
+
+        const currentTickets = queryClient.getQueryData<any[]>(queryKey);
+        const draggedTicket = tickets?.find((t: any) => t.id === ticketId);
+
+        if (!draggedTicket || draggedTicket.status === newStatus) return;
+
+        queryClient.setQueryData(queryKey, (old: any[] | undefined) => {
+            if (!old) return [];
+            return old.map(t => t.id === ticketId ? { ...t, status: newStatus } : t);
+        });
+
+        try {
+            const res = await secureFetch(`/api/tickets/${ticketId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: newStatus }),
+            });
+
+            if (!res.ok) throw new Error();
+            toast.success(`Moved to ${newStatus}`);
+        } catch (err) {
+            // Rollback on error
+            queryClient.setQueryData(queryKey, currentTickets);
+            toast.error("Failed to move ticket");
+        }
+    };
+
+    const collisionDetectionStrategy = (args: any) => {
+        const pointerCollisions = pointerWithin(args);
+        if (pointerCollisions.length > 0) return pointerCollisions;
+
+        // If no pointer collision, use rectIntersection
+        return rectIntersection(args);
+    };
 
     const handleAddColumn = async (name: string) => {
         if (!name.trim()) return;
@@ -77,19 +123,39 @@ export const TicketBoard = () => {
     }
     
     return (
-        <div className="w-full overflow-x-auto pb-4">
-            <div className="flex gap-4 min-w-[900px]">
-                {board?.columns?.map((col: any) => (
-                    <BoardColumn
-                        key={col.id}
-                        title={col.name}
-                        statusKey={col.status_key}
-                        tickets={tickets?.filter((t: any) => t.status === col.status_key) || []}
-                        onCreateTicket={handleCreateClick}
-                    />
-                ))}
-                <AddColumnButton onAdd={handleAddColumn} />
+        <DndContext
+            sensors={sensors}
+            collisionDetection={collisionDetectionStrategy}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+        >
+            <div className="w-full overflow-x-auto pb-4">
+                <div className="flex gap-4 min-w-[900px]">
+                    {board?.columns?.map((col: any) => (
+                        <BoardColumn
+                            key={col.id}
+                            id={col.status_key}
+                            title={col.name}
+                            statusKey={col.status_key}
+                            tickets={tickets?.filter((t: any) => t.status === col.status_key) || []}
+                            onCreateTicket={handleCreateClick}
+                        />
+                    ))}
+                    <AddColumnButton onAdd={handleAddColumn} />
+                </div>
             </div>
+
+            <DragOverlay dropAnimation={{
+                sideEffects: defaultDropAnimationSideEffects({
+                    styles: { active: { opacity: '0.4' } },
+                }),
+            }}>
+                {activeTicket ? (
+                    <div className="rotate-3 scale-105 transition-transform">
+                        <TicketCard ticket={activeTicket} />
+                    </div>
+                ) : null}
+            </DragOverlay>
 
             <CreateTicketDrawer
                 open={isDrawerOpen}
@@ -97,6 +163,6 @@ export const TicketBoard = () => {
                 defaultStatus={activeStatus}
                 onTodoCreated={() => queryClient.invalidateQueries({ queryKey: ['tickets', currentWorkspace?.id] })}
             />
-        </div>
+        </DndContext>
     );
 };

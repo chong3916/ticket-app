@@ -129,9 +129,21 @@ func (h *TicketHandler) UpdateTicket(c *gin.Context) {
 		return
 	}
 
-	val, _ := c.Get("user_id")
-	userIDStr := val.(string)
-	userID, _ := uuid.Parse(userIDStr)
+	val, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	userIDStr, ok := val.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user context"})
+		return
+	}
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user id format"})
+		return
+	}
 
 	var req struct {
 		Title       *string `json:"title" binding:"omitempty,min=1"`
@@ -165,6 +177,8 @@ func (h *TicketHandler) UpdateTicket(c *gin.Context) {
 
 	err = h.Service.UpdateTicket(c.Request.Context(), ticketID, userID, updates)
 	if err != nil {
+		c.Error(err)
+
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

@@ -1,17 +1,28 @@
-import { TicketCard } from "./TicketCard";
 import { PlusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { SortableTicket } from "@/components/SortableTicket.tsx";
+import type { Ticket } from "@/types/ticket.ts";
 
 interface BoardColumnProps {
+    id: string;
     title: string;
     statusKey: string;
     tickets: any[];
     onCreateTicket: (status: string) => void;
 }
 
-export const BoardColumn = ({ title, statusKey, tickets, onCreateTicket }: BoardColumnProps) => {
+export const BoardColumn = ({ id, title, statusKey, tickets, onCreateTicket }: BoardColumnProps) => {
+    const { setNodeRef, isOver } = useDroppable({ id });
+
     return (
-        <div className="flex flex-col bg-slate-100/50 rounded-lg p-4 w-full min-h-[600px] border border-slate-200">
+        <div
+            ref={setNodeRef}
+            className={`flex flex-col rounded-lg p-4 w-full min-h-[600px] border transition-colors ${
+                isOver ? "bg-indigo-50 border-indigo-200 shadow-inner" : "bg-slate-100/50 border-slate-200"
+            }`}
+        >
             {/* Column Header */}
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-2">
@@ -31,20 +42,19 @@ export const BoardColumn = ({ title, statusKey, tickets, onCreateTicket }: Board
             </div>
 
             {/* Ticket List */}
-            <div className="space-y-4 flex-1">
-                {tickets.length > 0 ? (
-                    tickets.map((ticket) => (
-                        <TicketCard
-                            key={ticket.id}
-                            ticket={ticket}
-                        />
-                    ))
-                ) : (
-                    <div className="h-24 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400 text-xs italic">
-                        No tickets in {title}
-                    </div>
-                )}
-            </div>
+            <SortableContext id={id} items={tickets.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-4 flex-1">
+                    {tickets.length > 0 ? (
+                        tickets.map((ticket: Ticket) => (
+                            <SortableTicket key={ticket.id} ticket={ticket} />
+                        ))
+                    ) : (
+                        <div className="h-24 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400 text-xs italic">
+                            No tickets in {title}
+                        </div>
+                    )}
+                </div>
+            </SortableContext>
         </div>
     );
 };

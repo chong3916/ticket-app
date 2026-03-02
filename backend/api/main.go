@@ -33,6 +33,7 @@ func main() {
 	ticketHandler := handlers.NewTicketHandler(ticketService)
 
 	r := gin.Default()
+	r.Use(middleware.ErrorLogger())
 
 	// CORS
 	c := cors.New(cors.Options{

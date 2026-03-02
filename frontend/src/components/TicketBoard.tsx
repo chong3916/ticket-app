@@ -22,11 +22,15 @@ import {
 } from "@dnd-kit/core";
 import { TicketDialog } from "./TicketDialog.tsx";
 import { TicketCard } from "@/components/TicketCard.tsx";
+import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers.ts";
 
 export const TicketBoard = () => {
     const { currentWorkspace } = useWorkspace();
+
     const { data: board, isLoading: boardLoading } = useWorkspaceBoard();
     const { data: tickets, isLoading: ticketsLoading } = useWorkspaceTickets();
+    const { data: members } = useWorkspaceMembers();
+
     const { secureFetch } = useApi();
     const queryClient = useQueryClient();
 
@@ -156,6 +160,7 @@ export const TicketBoard = () => {
                 onOpenChange={(open) => !open && setViewingTicketId(null)}
                 ticket={viewingTicket}
                 board={board}
+                members={members || []}
             />
 
             <DragOverlay dropAnimation={{

@@ -105,11 +105,11 @@ func (r *WorkspaceRepository) GetWorkspaceMembers(ctx context.Context, workspace
 	members := []models.User{}
 
 	query := `
-       SELECT u.id, u.email, u.name, u.created_at
+       SELECT u.id, u.email, u.username, u.created_at
        FROM users u
        JOIN workspace_members wm ON u.id = wm.user_id
        WHERE wm.workspace_id = $1
-       ORDER BY u.name ASC
+       ORDER BY u.username ASC
     `
 
 	rows, err := r.db.Query(ctx, query, workspaceID)

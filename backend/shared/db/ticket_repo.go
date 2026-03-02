@@ -126,7 +126,7 @@ func (r *TicketRepository) UpdateTicket(ctx context.Context, ticketID uuid.UUID,
 
 	for field, value := range updates {
 		// Whitelist allowed fields to prevent SQL injection or accidental overwrites
-		allowed := map[string]bool{"title": true, "description": true, "status": true, "priority": true}
+		allowed := map[string]bool{"title": true, "description": true, "status": true, "priority": true, "assignee_id": true}
 		if !allowed[field] {
 			continue
 		}

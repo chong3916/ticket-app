@@ -19,7 +19,16 @@ import { InlineInput, InlineTextarea } from "@/components/InlineInput.tsx";
 
 const priorities = ["low", "medium", "high", "urgent"];
 
-export const TicketDialog = ({ ticket, board, open, onOpenChange }: { ticket: any, board?: any, open: boolean; onOpenChange: (open: boolean) => void }) => {
+const FIELD_DISPLAY_NAMES: Record<string, string> = {
+    assignee_id: "Assignee",
+    workspace_id: "Workspace",
+    status: "Status",
+    priority: "Priority",
+    title: "Title",
+    description: "Description"
+};
+
+export const TicketDialog = ({ ticket, board, members, open, onOpenChange }: { ticket: any, board?: any, members: any[],  open: boolean; onOpenChange: (open: boolean) => void }) => {
     const { secureFetch } = useApi();
     const queryClient = useQueryClient();
     const [isUpdating, setIsUpdating] = useState(false);
@@ -46,7 +55,8 @@ export const TicketDialog = ({ ticket, board, open, onOpenChange }: { ticket: an
             });
 
             if (!res.ok) throw new Error();
-            toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} updated`);
+            const displayName = FIELD_DISPLAY_NAMES[field] || (field.charAt(0).toUpperCase() + field.slice(1));
+            toast.success(`${displayName} updated`);
         } catch (err) {
             queryClient.setQueryData(queryKey, previousTickets);
             toast.error("Failed to update");
@@ -124,7 +134,22 @@ export const TicketDialog = ({ ticket, board, open, onOpenChange }: { ticket: an
                             <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
                                 <User className="h-3 w-3" /> Assignee
                             </span>
-                            <p className="text-sm">{ticket.assignee_name || "Unassigned"}</p>
+                            <Select
+                                value={ticket.assignee_id || "unassigned"}
+                                onValueChange={(val) => handleUpdate("assignee_id", val === "unassigned" ? "" : val)}
+                            >
+                                <SelectTrigger className="h-8 border-none bg-transparent p-0 hover:bg-slate-50 transition-colors focus:ring-0 text-sm">
+                                    <SelectValue placeholder="Unassigned" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="unassigned" className="text-slate-400 italic">Unassigned</SelectItem>
+                                    {members.map((member) => (
+                                        <SelectItem key={member.id} value={member.id}>
+                                            {member.username}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="space-y-1">
                             <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1 text-nowrap">

@@ -90,9 +90,32 @@ func (s *TicketService) GetCreatorTicket(ctx context.Context, userID uuid.UUID) 
 }
 
 func (s *TicketService) UpdateTicket(ctx context.Context, ticketID uuid.UUID, userID uuid.UUID, updates map[string]interface{}) error {
+	if len(updates) == 0 {
+		return nil // Idempotent
+	}
+
 	workspaceID, err := s.TicketRepo.GetTicketWorkspaceID(ctx, ticketID)
 	if err != nil {
 		return errors.New("ticket not found")
+	}
+
+	if val, ok := updates["assignee_id"]; ok {
+		if val != nil {
+			assigneeID, ok := val.(uuid.UUID)
+			if !ok {
+				return errors.New("invalid assignee id format")
+			}
+
+			// Get workspace members
+			isMember, err := s.WorkspaceRepo.IsMember(ctx, workspaceID, assigneeID)
+			if err != nil {
+				return errors.New("failed to verify workspace membership")
+			}
+			if !isMember {
+				return errors.New("chosen assignee is not a member of this workspace")
+			}
+			// TODO: publish event for user notification
+		}
 	}
 
 	if status, ok := updates["status"].(string); ok {

@@ -60,9 +60,23 @@ func (h *WorkspaceHandler) CreateWorkspace(c *gin.Context) {
 }
 
 func (h *WorkspaceHandler) GetUserWorkspaces(c *gin.Context) {
-	val, _ := c.Get("user_id")
-	userIDStr := val.(string)
-	userID, _ := uuid.Parse(userIDStr)
+	val, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userIDStr, ok := val.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user context"})
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user id format"})
+		return
+	}
 
 	workspaces, err := h.Service.GetUserWorkspaces(c.Request.Context(), userID)
 	if err != nil {
@@ -81,8 +95,23 @@ func (h *WorkspaceHandler) GetWorkspaceMembers(c *gin.Context) {
 		return
 	}
 
-	val, _ := c.Get("user_id")
-	userID, _ := uuid.Parse(val.(string))
+	val, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userIDStr, ok := val.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user context"})
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user id format"})
+		return
+	}
 
 	members, err := h.Service.GetWorkspaceMembers(c.Request.Context(), workspaceID, userID)
 	if err != nil {

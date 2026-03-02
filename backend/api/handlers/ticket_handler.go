@@ -150,6 +150,7 @@ func (h *TicketHandler) UpdateTicket(c *gin.Context) {
 		Description *string `json:"description"`
 		Status      *string `json:"status"`
 		Priority    *string `json:"priority"`
+		AssigneeID  *string `json:"assignee_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid update data"})
@@ -169,10 +170,18 @@ func (h *TicketHandler) UpdateTicket(c *gin.Context) {
 	if req.Priority != nil {
 		updates["priority"] = *req.Priority
 	}
-
-	if len(updates) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "No valid fields to update"})
-		return
+	if req.AssigneeID != nil {
+		if *req.AssigneeID == "" {
+			// Req assigneeId is empty, set to null to unassign
+			updates["assignee_id"] = nil
+		} else {
+			parsedAssigneeID, err := uuid.Parse(*req.AssigneeID)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid assignee id format"})
+				return
+			}
+			updates["assignee_id"] = parsedAssigneeID
+		}
 	}
 
 	err = h.Service.UpdateTicket(c.Request.Context(), ticketID, userID, updates)

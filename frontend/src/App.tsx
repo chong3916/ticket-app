@@ -6,6 +6,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute.tsx";
 import { WorkspaceLayout } from "@/components/WorkspaceLayout.tsx";
 import { TicketBoard } from "@/components/TicketBoard.tsx";
 import { useWorkspace } from "@/context/WorkspaceContext.tsx";
+import { MembersPage } from "@/containers/MembersPage.tsx";
 
 const DashboardRedirect = () => {
     const { currentWorkspace, workspaces, isLoading } = useWorkspace();
@@ -37,8 +38,9 @@ function App() {
                     <Route path="/dashboard" element={<DashboardRedirect />} />
 
                     <Route path="/workspaces/:id" element={<WorkspaceLayout />}>
-                        <Route index element={<Navigate to="board" replace />} />                        <Route path="board" element={<TicketBoard />} />
-                        {/*<Route path="members" element={<MembersPage />} />*/}
+                        <Route index element={<Navigate to="board" replace />} />
+                        <Route path="board" element={<TicketBoard />} />
+                        <Route path="members" element={<MembersPage />} />
                         {/*<Route path="settings" element={<SettingsPage />} />*/}
                     </Route>
                 </Route>

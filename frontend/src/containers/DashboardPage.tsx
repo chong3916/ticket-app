@@ -2,7 +2,7 @@ import { TicketBoard } from "@/components/TicketBoard.tsx";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { Sidebar } from "@/components/Sidebar.tsx";
 
-export default function DashboardPage() {
+export const DashboardPage = () => {
     const { currentWorkspace } = useWorkspace();
 
     return (

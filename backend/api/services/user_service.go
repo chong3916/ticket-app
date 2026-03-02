@@ -65,9 +65,10 @@ func (s *UserService) Login(ctx context.Context, email, password string) (string
 
 func (s *UserService) GenerateToken(user models.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": user.ID.String(),
-		"exp": time.Now().Add(time.Hour * 72).Unix(),
-		"iat": time.Now().Unix(),
+		"sub":   user.ID.String(),
+		"email": user.Email,
+		"exp":   time.Now().Add(time.Hour * 72).Unix(),
+		"iat":   time.Now().Unix(),
 	})
 
 	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))

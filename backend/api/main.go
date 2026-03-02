@@ -21,16 +21,20 @@ func main() {
 	boardRepo := db.NewBoardRepository(pool)
 	wsRepo := db.NewWorkspaceRepository(pool)
 	ticketRepo := db.NewTicketRepository(pool)
+	invitationRepo := db.NewInvitationRepository(pool)
 
 	userService := services.NewUserService(userRepo)
 	boardService := services.NewBoardService(boardRepo)
 	wsService := services.NewWorkspaceService(wsRepo, boardService)
 	ticketService := services.NewTicketService(ticketRepo, wsRepo, boardRepo)
+	invitationService := services.NewInvitationService(invitationRepo, wsRepo)
 
 	userHandler := handlers.NewUserHandler(userService)
 	boardHandler := handlers.NewBoardHandler(boardService)
-	wsHandler := handlers.NewWorkspaceHandler(wsService)
 	ticketHandler := handlers.NewTicketHandler(ticketService)
+	invitationHandler := handlers.NewInvitationHandler(invitationService)
+
+	wsHandler := handlers.NewWorkspaceHandler(wsService, invitationService)
 
 	r := gin.Default()
 	r.Use(middleware.ErrorLogger())
@@ -66,6 +70,8 @@ func main() {
 		api.POST("/workspaces/:id/invite", wsHandler.InviteMember)
 		api.GET("/workspaces/:id/board", boardHandler.GetWorkspaceBoard)
 		api.POST("/workspaces/:id/board/columns", boardHandler.AddColumn)
+
+		api.POST("/invites/accept", invitationHandler.AcceptInvite)
 	}
 
 	log.Println("Server starting on :8080")

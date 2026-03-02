@@ -147,6 +147,16 @@ func (r *WorkspaceRepository) AddMemberByEmail(ctx context.Context, workspaceID 
 	return err
 }
 
+func (r *WorkspaceRepository) AddMemberByID(ctx context.Context, workspaceID uuid.UUID, userID uuid.UUID, role string) error {
+	memberQuery := `
+        INSERT INTO workspace_members (workspace_id, user_id, role) 
+        VALUES ($1, $2, $3)
+        ON CONFLICT (workspace_id, user_id) DO NOTHING
+    `
+	_, err := r.db.Exec(ctx, memberQuery, workspaceID, userID, role)
+	return err
+}
+
 func (r *WorkspaceRepository) GetUserWorkspaceRole(ctx context.Context, workspaceID, userID uuid.UUID) (string, error) {
 	var role string
 	query := `

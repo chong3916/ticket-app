@@ -9,11 +9,12 @@ import (
 )
 
 type WorkspaceHandler struct {
-	Service *services.WorkspaceService
+	Service           *services.WorkspaceService
+	InvitationService *services.InvitationService
 }
 
-func NewWorkspaceHandler(svc *services.WorkspaceService) *WorkspaceHandler {
-	return &WorkspaceHandler{Service: svc}
+func NewWorkspaceHandler(svc *services.WorkspaceService, invitationSvc *services.InvitationService) *WorkspaceHandler {
+	return &WorkspaceHandler{Service: svc, InvitationService: invitationSvc}
 }
 
 type CreateWorkspaceRequest struct {
@@ -154,15 +155,11 @@ func (h *WorkspaceHandler) InviteMember(c *gin.Context) {
 		return
 	}
 
-	err = h.Service.InviteMember(c.Request.Context(), wsID, userID, req.Email)
+	token, err := h.InvitationService.InviteUser(c.Request.Context(), wsID, userID, req.Email)
 	if err != nil {
-		if err.Error() == "user with this email does not exist" {
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.JSON(http.StatusOK, gin.H{"message": "Invitation created", "token": token})
 }

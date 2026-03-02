@@ -28,7 +28,7 @@ import { PlusCircle } from "lucide-react";
 const CreateWorkspaceForm = ({ onSuccess }: { onSuccess: () => void }) => {
     const [name, setName] = useState('');
     const { secureFetch } = useApi();
-    const { setWorkspace } = useWorkspace();
+    const { refreshWorkspaces } = useWorkspace();
     const queryClient = useQueryClient();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -40,12 +40,10 @@ const CreateWorkspaceForm = ({ onSuccess }: { onSuccess: () => void }) => {
         });
 
         if (res.ok) {
-            const newWorkspace = await res.json();
-
             // Refresh the switcher list
             await queryClient.invalidateQueries({ queryKey: ['user-workspaces'] });
 
-            setWorkspace(newWorkspace);
+            await refreshWorkspaces();
 
             toast.success(`Workspace "${name}" created!`);
             setName('');

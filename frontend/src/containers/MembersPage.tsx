@@ -5,14 +5,39 @@ import { useApi } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserPlus, Mail, ShieldCheck, Loader2 } from "lucide-react";
+import { UserPlus, Mail, ShieldCheck, Loader2, ShieldAlert, Eye } from "lucide-react";
 import { toast } from "sonner";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
+
+const RoleBadge = ({ role }: { role: string }) => {
+    const configs: Record<string, { icon: any, color: string }> = {
+        admin: { icon: ShieldAlert, color: "bg-red-100 text-red-800 border-red-200" },
+        member: { icon: ShieldCheck, color: "bg-blue-100 text-blue-800 border-blue-200" },
+        viewer: { icon: Eye, color: "bg-slate-100 text-slate-800 border-slate-200" },
+    };
+
+    const config = configs[role] || configs.viewer;
+    const Icon = config.icon;
+
+    return (
+        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize ${config.color}`}>
+            <Icon className="h-3 w-3" /> {role}
+        </span>
+    );
+};
 
 export const MembersPage = () => {
     const { id: workspaceId } = useParams();
     const { secureFetch } = useApi();
     const queryClient = useQueryClient();
     const [email, setEmail] = useState("");
+    const [role, setRole] = useState("member");
     const [isInviting, setIsInviting] = useState(false);
 
     // Fetch members
@@ -34,7 +59,7 @@ export const MembersPage = () => {
         try {
             const res = await secureFetch(`/api/workspaces/${workspaceId}/invite`, {
                 method: "POST",
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email, role }),
             });
 
             if (!res.ok) {
@@ -42,7 +67,7 @@ export const MembersPage = () => {
                 throw new Error(errorData.error || "Failed to invite member");
             }
 
-            toast.success(`Invitation sent to ${email}`);
+            toast.success(`Invitation sent to ${email} as ${role}`);
             setEmail("");
             // Refresh member list
             queryClient.invalidateQueries({ queryKey: ["members", workspaceId] });
@@ -88,6 +113,20 @@ export const MembersPage = () => {
                                 required
                             />
                         </div>
+
+                        <div className="flex-[1]">
+                            <Select value={role} onValueChange={setRole}>
+                                <SelectTrigger className="h-10">
+                                    <SelectValue placeholder="Select Role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="viewer">Viewer</SelectItem>
+                                    <SelectItem value="member">Member</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
                         <Button type="submit" disabled={isInviting}>
                             {isInviting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Send Invite
@@ -114,11 +153,7 @@ export const MembersPage = () => {
                                         <p className="text-sm text-muted-foreground">{member.email}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-800">
-                                        <ShieldCheck className="h-3 w-3" /> Member
-                                    </span>
-                                </div>
+                                <RoleBadge role={member.role} />
                             </div>
                         ))}
                     </div>

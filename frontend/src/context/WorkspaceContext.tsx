@@ -2,22 +2,14 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from "@/context/AuthContext.tsx";
 import { useApi } from "@/hooks/useApi.ts";
 import { useInvitations } from "@/hooks/useInvitations.ts";
-
-interface Workspace {
-    id: string;
-    name: string;
-}
-
-interface Invitation {
-    id: string;
-    workspace_name: string;
-    inviter_name: string;
-}
+import type { Workspace } from '@/types/workspace';
+import type { Invitation } from "@/types/invitation.ts";
 
 interface WorkspaceContextType {
     workspaces: Workspace[];
     invitations: Invitation[];
     currentWorkspace: Workspace | null;
+    userRole: string | null;
     isLoading: boolean;
     isInvitesLoading: boolean;
     setWorkspace: (workspace: Workspace) => void;
@@ -39,6 +31,14 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const saved = localStorage.getItem('active_workspace');
         return saved ? JSON.parse(saved) : null;
     });
+    const [userRole, setUserRole] = useState<'admin' | 'member' | 'viewer' | null>(() => {
+        const saved = localStorage.getItem('active_workspace');
+        if (saved) {
+            const parsed = JSON.parse(saved) as Workspace;
+            return parsed.role;
+        }
+        return null;
+    });
 
     const refreshWorkspaces = async () => {
         if (!token) return;
@@ -46,6 +46,15 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             const res = await secureFetch("/api/workspaces");
             const data = await res.json();
             setWorkspaces(data);
+
+            if (currentWorkspace) {
+                const updatedWs = data.find((w: any) => w.id === currentWorkspace.id);
+                if (updatedWs) {
+                    setCurrentWorkspace(updatedWs);
+                    setUserRole(updatedWs.role);
+                    localStorage.setItem('active_workspace', JSON.stringify(updatedWs));
+                }
+            }
         } catch (err) {
             console.error("Failed to fetch workspaces", err);
         } finally {
@@ -56,6 +65,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const setWorkspace = (workspace: Workspace) => {
         localStorage.setItem('active_workspace', JSON.stringify(workspace));
         setCurrentWorkspace(workspace);
+        setUserRole(workspace.role);
     };
 
     const clearWorkspace = () => {
@@ -77,6 +87,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             workspaces,
             invitations,
             currentWorkspace,
+            userRole,
             isLoading,
             isInvitesLoading,
             setWorkspace,

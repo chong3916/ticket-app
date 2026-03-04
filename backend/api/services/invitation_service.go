@@ -25,7 +25,7 @@ func NewInvitationService(invitationRepo *db.InvitationRepository, wsRepo *db.Wo
 	}
 }
 
-func (s *InvitationService) InviteUser(ctx context.Context, workspaceID, inviterID uuid.UUID, email string) (string, error) {
+func (s *InvitationService) InviteUser(ctx context.Context, workspaceID, inviterID uuid.UUID, email string, role string) (string, error) {
 	// Check if user is already in workspace
 	user, err := s.UserRepo.GetUserByEmail(ctx, email)
 	if err == nil {
@@ -44,7 +44,7 @@ func (s *InvitationService) InviteUser(ctx context.Context, workspaceID, inviter
 	token := hex.EncodeToString(b)
 
 	// Save to db
-	err = s.InvitationRepo.CreateInvitation(ctx, workspaceID, inviterID, email, token)
+	err = s.InvitationRepo.CreateInvitation(ctx, workspaceID, inviterID, email, token, role)
 	if err != nil {
 		return "", err
 	}
@@ -54,7 +54,7 @@ func (s *InvitationService) InviteUser(ctx context.Context, workspaceID, inviter
 }
 
 func (s *InvitationService) AcceptInvitation(ctx context.Context, token string, userID uuid.UUID, userEmail string) error {
-	workspaceID, invitedEmail, err := s.InvitationRepo.GetByToken(ctx, token)
+	workspaceID, invitedEmail, role, err := s.InvitationRepo.GetByToken(ctx, token)
 	if err != nil {
 		return errors.New("invalid or expired invitation")
 	}
@@ -64,7 +64,7 @@ func (s *InvitationService) AcceptInvitation(ctx context.Context, token string, 
 	}
 
 	// Add member
-	err = s.WorkspaceRepo.AddMemberByID(ctx, workspaceID, userID, "member")
+	err = s.WorkspaceRepo.AddMemberByID(ctx, workspaceID, userID, role)
 	if err != nil {
 		return err
 	}

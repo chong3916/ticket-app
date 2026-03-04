@@ -52,12 +52,7 @@ func (s *WorkspaceService) GetUserWorkspaces(ctx context.Context, userID uuid.UU
 	return s.Repo.GetUserWorkspaces(ctx, userID)
 }
 
-func (s *WorkspaceService) GetWorkspaceMembers(ctx context.Context, workspaceID uuid.UUID, requestingUserID uuid.UUID) ([]models.User, error) {
-	isMember, err := s.Repo.IsMember(ctx, workspaceID, requestingUserID)
-	if err != nil || !isMember {
-		return nil, errors.New("forbidden: you cannot view members of this workspace")
-	}
-
+func (s *WorkspaceService) GetWorkspaceMembers(ctx context.Context, workspaceID uuid.UUID) ([]models.WorkspaceMember, error) {
 	return s.Repo.GetWorkspaceMembers(ctx, workspaceID)
 }
 

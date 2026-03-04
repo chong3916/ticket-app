@@ -8,15 +8,15 @@ import { useWorkspace } from "@/context/WorkspaceContext.tsx";
 
 export const Sidebar = () => {
     const { logout } = useAuth();
-    const { currentWorkspace } = useWorkspace();
+    const { currentWorkspace, userRole } = useWorkspace();
 
     const getPath = (tab: string) =>
         currentWorkspace ? `/workspaces/${currentWorkspace.id}/${tab}` : "/";
 
     const navItems = currentWorkspace ? [
-        { label: "Board", icon: LayoutDashboard, path: getPath("board") },
-        { label: "Members", icon: Users, path: getPath("members") },
-        { label: "Settings", icon: Settings, path: getPath("settings") },
+        { label: "Board", icon: LayoutDashboard, path: getPath("board"), show: true },
+        { label: "Members", icon: Users, path: getPath("members"), show: true },
+        { label: "Settings", icon: Settings, path: getPath("settings"), show: userRole === 'admin' },
     ] : [];
 
     return (
@@ -57,6 +57,14 @@ export const Sidebar = () => {
                 </nav>
 
                 <div className="mt-auto p-4 border-t">
+                    {userRole && (
+                        <div className="px-3 mb-4">
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground bg-muted px-2 py-1 rounded">
+                                Role: {userRole}
+                            </span>
+                        </div>
+                    )}
+                    
                     <Button variant="ghost" onClick={logout} className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10">
                         <LogOut className="h-4 w-4" />
                         Logout

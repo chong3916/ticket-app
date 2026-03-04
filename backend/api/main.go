@@ -50,29 +50,35 @@ func main() {
 		c.HandlerFunc(ctx.Writer, ctx.Request)
 	})
 
-	r.POST("/register", userHandler.Register)
-	r.POST("/login", userHandler.Login)
-
 	// Protected routes
 	api := r.Group("/api")
-	api.Use(middleware.AuthMiddleware())
 	{
-		api.GET("/tickets", ticketHandler.GetCreatorTicket)
-		api.POST("/tickets", ticketHandler.CreateTicket)
-		api.PATCH("/tickets/:id", ticketHandler.UpdateTicket)
-		api.DELETE("/tickets/:id", ticketHandler.DeleteTicket)
+		api.POST("/register", userHandler.Register)
+		api.POST("/login", userHandler.Login)
+	}
 
-		api.GET("/workspaces/:id/tickets", ticketHandler.GetWorkspaceTickets)
+	protected := r.Group("/api", middleware.AuthMiddleware())
+	{
+		protected.GET("/tickets", ticketHandler.GetCreatorTicket)
+		protected.POST("/tickets", ticketHandler.CreateTicket)
+		protected.PATCH("/tickets/:id", ticketHandler.UpdateTicket)
+		protected.DELETE("/tickets/:id", ticketHandler.DeleteTicket)
 
-		api.POST("/workspaces", wsHandler.CreateWorkspace)
-		api.GET("/workspaces", wsHandler.GetUserWorkspaces)
-		api.GET("/workspaces/:id/members", wsHandler.GetWorkspaceMembers)
-		api.POST("/workspaces/:id/invite", wsHandler.InviteMember)
-		api.GET("/workspaces/:id/board", boardHandler.GetWorkspaceBoard)
-		api.POST("/workspaces/:id/board/columns", boardHandler.AddColumn)
+		protected.POST("/workspaces", wsHandler.CreateWorkspace)
+		protected.GET("/workspaces", wsHandler.GetUserWorkspaces)
 
-		api.POST("/invites/accept", invitationHandler.AcceptInvite)
-		api.GET("/invites/pending", invitationHandler.GetMyInvites)
+		protected.POST("/invites/accept", invitationHandler.AcceptInvite)
+		protected.GET("/invites/pending", invitationHandler.GetMyInvites)
+
+		ws := protected.Group("/workspaces/:id")
+		{
+			ws.GET("/tickets", ticketHandler.GetWorkspaceTickets)
+
+			ws.GET("/members", middleware.RequireRole(wsRepo, "admin", "member", "viewer"), wsHandler.GetWorkspaceMembers)
+			ws.POST("/invite", middleware.RequireRole(wsRepo, "admin"), wsHandler.InviteMember)
+			ws.GET("/board", middleware.RequireRole(wsRepo, "admin", "member", "viewer"), boardHandler.GetWorkspaceBoard)
+			ws.POST("/board/columns", middleware.RequireRole(wsRepo, "admin"), boardHandler.AddColumn)
+		}
 	}
 
 	log.Println("Server starting on :8080")

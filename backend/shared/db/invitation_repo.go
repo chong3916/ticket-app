@@ -16,13 +16,14 @@ func NewInvitationRepository(pool *pgxpool.Pool) *InvitationRepository {
 	return &InvitationRepository{db: pool}
 }
 
-func (r *InvitationRepository) CreateInvitation(ctx context.Context, workspaceID, inviterID uuid.UUID, email, token string) error {
+func (r *InvitationRepository) CreateInvitation(ctx context.Context, workspaceID, inviterID uuid.UUID, email, token string, role string) error {
 	query := `
-       INSERT INTO workspace_invitations (workspace_id, invited_by, email, token, expires_at, status)
-       VALUES ($1, $2, $3, $4, $5, 'pending')
+       INSERT INTO workspace_invitations (workspace_id, invited_by, email, token, expires_at, role, status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending')
        ON CONFLICT (workspace_id, email) WHERE status = 'pending' 
        DO UPDATE SET 
           token = EXCLUDED.token,
+          role = EXCLUDED.role,
           invited_by = EXCLUDED.invited_by,
           expires_at = EXCLUDED.expires_at,
           created_at = NOW()
@@ -32,12 +33,13 @@ func (r *InvitationRepository) CreateInvitation(ctx context.Context, workspaceID
 	return err
 }
 
-func (r *InvitationRepository) GetByToken(ctx context.Context, token string) (uuid.UUID, string, error) {
+func (r *InvitationRepository) GetByToken(ctx context.Context, token string) (uuid.UUID, string, string, error) {
 	var workspaceID uuid.UUID
 	var email string
-	query := `SELECT workspace_id, email FROM workspace_invitations WHERE token = $1 AND status = 'pending' AND expires_at > NOW()`
-	err := r.db.QueryRow(ctx, query, token).Scan(&workspaceID, &email)
-	return workspaceID, email, err
+	var role string
+	query := `SELECT workspace_id, email, role FROM workspace_invitations WHERE token = $1 AND status = 'pending' AND expires_at > NOW()`
+	err := r.db.QueryRow(ctx, query, token).Scan(&workspaceID, &email, &role)
+	return workspaceID, email, role, err
 }
 
 func (r *InvitationRepository) MarkAsAccepted(ctx context.Context, token string) error {

@@ -23,6 +23,7 @@ type CreateWorkspaceRequest struct {
 
 type InviteMemberRequest struct {
 	Email string `json:"email" binding:"required,email"`
+	Role  string `json:"role" binding:"required,oneof=admin member viewer"`
 }
 
 func (h *WorkspaceHandler) CreateWorkspace(c *gin.Context) {
@@ -96,25 +97,7 @@ func (h *WorkspaceHandler) GetWorkspaceMembers(c *gin.Context) {
 		return
 	}
 
-	val, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
-
-	userIDStr, ok := val.(string)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user context"})
-		return
-	}
-
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user id format"})
-		return
-	}
-
-	members, err := h.Service.GetWorkspaceMembers(c.Request.Context(), workspaceID, userID)
+	members, err := h.Service.GetWorkspaceMembers(c.Request.Context(), workspaceID)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
@@ -151,11 +134,11 @@ func (h *WorkspaceHandler) InviteMember(c *gin.Context) {
 
 	var req InviteMemberRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "valid email required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Valid email and role required"})
 		return
 	}
 
-	token, err := h.InvitationService.InviteUser(c.Request.Context(), wsID, userID, req.Email)
+	token, err := h.InvitationService.InviteUser(c.Request.Context(), wsID, userID, req.Email, req.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

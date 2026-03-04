@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import {
     SelectValue
 } from "@/components/ui/select";
 import { useWorkspace } from "@/context/WorkspaceContext.tsx";
+import { RemoveMemberDialog } from "@/components/RemoveMemberDialog.tsx";
 
 const RoleBadge = ({ role }: { role: string }) => {
     const configs: Record<string, { icon: any, color: string }> = {
@@ -54,6 +55,35 @@ export const MembersPage = () => {
             return res.json();
         },
         enabled: !!workspaceId,
+    });
+
+    // Update role mutation
+    const updateRoleMutation = useMutation({
+        mutationFn: async ({ memberId, role }: { memberId: string, role: string }) => {
+            const res = await secureFetch(`/api/workspaces/${workspaceId}/members/${memberId}/role`, {
+                method: "PATCH",
+                body: JSON.stringify({ role })
+            });
+            if (!res.ok) throw new Error("Failed to update role");
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["members", workspaceId] });
+            toast.success("Role updated");
+        }
+    });
+
+    // Remove role mutation
+    const removeMemberMutation = useMutation({
+        mutationFn: async (memberId: string) => {
+            const res = await secureFetch(`/api/workspaces/${workspaceId}/members/${memberId}`, {
+                method: "DELETE"
+            });
+            if (!res.ok) throw new Error("Failed to remove member");
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["members", workspaceId] });
+            toast.success("Member removed");
+        }
     });
 
     const handleInvite = async (e: React.FormEvent) => {
@@ -151,20 +181,47 @@ export const MembersPage = () => {
                 </CardHeader>
                 <CardContent>
                     <div className="divide-y">
-                        {members?.map((member: any) => (
-                            <div key={member.id} className="flex items-center justify-between py-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                                        {(member.username || "U").charAt(0).toUpperCase()}
+                        {members?.map((member: any) => {
+                            const isMe = member.id === currentWorkspace?.user_id;
+
+                            return (
+                                <div key={ member.id } className="flex items-center justify-between py-4">
+                                    <div className="flex items-center gap-3">
+                                        <div
+                                            className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                                            { (member.username || "U").charAt(0).toUpperCase() }
+                                        </div>
+                                        <div>
+                                            <p className="font-medium">{ member.username }</p>
+                                            <p className="text-sm text-muted-foreground">{ member.email }</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="font-medium">{member.username}</p>
-                                        <p className="text-sm text-muted-foreground">{member.email}</p>
+                                    <div className="flex items-center gap-4 min-w-[160px] justify-end">
+                                        {isAdmin ? (
+                                            <Select
+                                                disabled={isMe}
+                                                value={member.role}
+                                                onValueChange={(newRole) => updateRoleMutation.mutate({ memberId: member.id, role: newRole })}
+                                            >
+                                                <SelectTrigger className="w-[110px] h-8 text-xs">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="viewer">Viewer</SelectItem>
+                                                    <SelectItem value="member">Member</SelectItem>
+                                                    <SelectItem value="admin">Admin</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        ) : (
+                                            <RoleBadge role={member.role} />
+                                        )}
+
+                                        {/* Delete user button */}
+                                        {isAdmin && !isMe ? <RemoveMemberDialog member={member} removeMemberMutation={removeMemberMutation} /> : <div className="w-8" /> }
                                     </div>
                                 </div>
-                                <RoleBadge role={member.role} />
-                            </div>
-                        ))}
+                            )
+                        })}
                     </div>
                 </CardContent>
             </Card>

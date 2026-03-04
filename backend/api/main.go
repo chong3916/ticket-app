@@ -73,6 +73,9 @@ func main() {
 			ws.DELETE("/tickets/:ticket_id", middleware.RequireRole(wsRepo, "admin", "member"), ticketHandler.DeleteTicket)
 
 			ws.GET("/members", middleware.RequireRole(wsRepo, "admin", "member", "viewer"), wsHandler.GetWorkspaceMembers)
+			ws.PATCH("/members/:member_id/role", middleware.RequireRole(wsRepo, "admin"), wsHandler.UpdateMemberRole)
+			ws.DELETE("/members/:member_id", middleware.RequireRole(wsRepo, "admin"), wsHandler.RemoveMember)
+
 			ws.POST("/invite", middleware.RequireRole(wsRepo, "admin"), wsHandler.InviteMember)
 			ws.GET("/board", middleware.RequireRole(wsRepo, "admin", "member", "viewer"), boardHandler.GetWorkspaceBoard)
 			ws.POST("/board/columns", middleware.RequireRole(wsRepo, "admin"), boardHandler.AddColumn)

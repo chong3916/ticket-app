@@ -53,6 +53,9 @@ func (r *WorkspaceRepository) CreateWorkspaceWithMember(ctx context.Context, nam
 		return models.Workspace{}, err
 	}
 
+	ws.UserID = userID
+	ws.Role = "admin"
+
 	// Commit both
 	if err := tx.Commit(ctx); err != nil {
 		return models.Workspace{}, err
@@ -76,7 +79,7 @@ func (r *WorkspaceRepository) GetUserWorkspaces(ctx context.Context, userID uuid
 	workspaces := []models.Workspace{}
 
 	query := `
-       SELECT w.id, w.name, wm.role, w.created_at, w.updated_at 
+       SELECT w.id, w.name, wm.role, wm.user_id, w.created_at, w.updated_at 
        FROM workspaces w
        JOIN workspace_members wm ON w.id = wm.workspace_id
        WHERE wm.user_id = $1
@@ -91,7 +94,7 @@ func (r *WorkspaceRepository) GetUserWorkspaces(ctx context.Context, userID uuid
 
 	for rows.Next() {
 		var w models.Workspace
-		err := rows.Scan(&w.ID, &w.Name, &w.Role, &w.CreatedAt, &w.UpdatedAt)
+		err := rows.Scan(&w.ID, &w.Name, &w.Role, &w.UserID, &w.CreatedAt, &w.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -188,5 +191,20 @@ func (r *WorkspaceRepository) CreateWorkspaceWithMemberTx(ctx context.Context, t
 	memberQuery := `INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, $3)`
 	_, err = tx.Exec(ctx, memberQuery, ws.ID, userID, "admin")
 
+	ws.UserID = userID
+	ws.Role = "admin"
+
 	return ws, err
+}
+
+func (r *WorkspaceRepository) RemoveMember(ctx context.Context, workspaceID, userID uuid.UUID) error {
+	query := `DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id = $2`
+	_, err := r.db.Exec(ctx, query, workspaceID, userID)
+	return err
+}
+
+func (r *WorkspaceRepository) UpdateMemberRole(ctx context.Context, workspaceID, userID uuid.UUID, role string) error {
+	query := `UPDATE workspace_members SET role = $3 WHERE workspace_id = $1 AND user_id = $2`
+	_, err := r.db.Exec(ctx, query, workspaceID, userID, role)
+	return err
 }

@@ -26,6 +26,10 @@ type InviteMemberRequest struct {
 	Role  string `json:"role" binding:"required,oneof=admin member viewer"`
 }
 
+type UpdateRoleRequest struct {
+	Role string `json:"role" binding:"required,oneof=admin member viewer"`
+}
+
 func (h *WorkspaceHandler) CreateWorkspace(c *gin.Context) {
 	val, exists := c.Get("user_id")
 	if !exists {
@@ -145,4 +149,40 @@ func (h *WorkspaceHandler) InviteMember(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Invitation created", "token": token})
+}
+
+func (h *WorkspaceHandler) RemoveMember(c *gin.Context) {
+	wsID, _ := uuid.Parse(c.Param("id"))
+	memberID, err := uuid.Parse(c.Param("member_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid member id"})
+		return
+	}
+
+	if err := h.Service.RemoveMember(c.Request.Context(), wsID, memberID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove member"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "member removed"})
+}
+
+func (h *WorkspaceHandler) UpdateMemberRole(c *gin.Context) {
+	wsID, _ := uuid.Parse(c.Param("id"))
+	memberID, err := uuid.Parse(c.Param("member_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid member id"})
+		return
+	}
+
+	var req UpdateRoleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.Service.UpdateMemberRole(c.Request.Context(), wsID, memberID, req.Role); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update role"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "role updated"})
 }

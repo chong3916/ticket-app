@@ -67,3 +67,12 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, adminI
 	// Add the member
 	return s.Repo.AddMemberByEmail(ctx, workspaceID, targetEmail, "member")
 }
+
+func (s *WorkspaceService) RemoveMember(ctx context.Context, workspaceID, userID uuid.UUID) error {
+	// TODO: prevent deletion of last admin (if last admin is being deleted, ask to delete workspace instead)
+	return s.Repo.RemoveMember(ctx, workspaceID, userID)
+}
+
+func (s *WorkspaceService) UpdateMemberRole(ctx context.Context, workspaceID, userID uuid.UUID, role string) error {
+	return s.Repo.UpdateMemberRole(ctx, workspaceID, userID, role)
+}

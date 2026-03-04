@@ -29,7 +29,7 @@ func (r *InvitationRepository) CreateInvitation(ctx context.Context, workspaceID
           created_at = NOW()
     `
 	expiresAt := time.Now().Add(7 * 24 * time.Hour) // Expires in 7 days
-	_, err := r.db.Exec(ctx, query, workspaceID, inviterID, email, token, expiresAt)
+	_, err := r.db.Exec(ctx, query, workspaceID, inviterID, email, token, expiresAt, role)
 	return err
 }
 

@@ -208,3 +208,10 @@ func (r *WorkspaceRepository) UpdateMemberRole(ctx context.Context, workspaceID,
 	_, err := r.db.Exec(ctx, query, workspaceID, userID, role)
 	return err
 }
+
+func (r *WorkspaceRepository) GetAdminCount(ctx context.Context, workspaceID uuid.UUID) (int, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM workspace_members WHERE workspace_id = $1 AND role = 'admin'`
+	err := r.db.QueryRow(ctx, query, workspaceID).Scan(&count)
+	return count, err
+}

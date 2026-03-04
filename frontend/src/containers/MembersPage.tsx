@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/select";
 import { useWorkspace } from "@/context/WorkspaceContext.tsx";
 import { RemoveMemberDialog } from "@/components/RemoveMemberDialog.tsx";
+import { useNavigate } from "react-router-dom";
+import { LeaveWorkspaceDialog } from "@/components/LeaveWorkspaceDialog.tsx";
 
 const RoleBadge = ({ role }: { role: string }) => {
     const configs: Record<string, { icon: any, color: string }> = {
@@ -36,8 +38,9 @@ const RoleBadge = ({ role }: { role: string }) => {
 
 export const MembersPage = () => {
     const { id: workspaceId } = useParams();
-    const { currentWorkspace } = useWorkspace();
+    const { currentWorkspace, refreshWorkspaces, clearWorkspace } = useWorkspace();
     const { secureFetch } = useApi();
+    const navigate = useNavigate();
 
     const queryClient = useQueryClient();
     const [email, setEmail] = useState("");
@@ -83,6 +86,30 @@ export const MembersPage = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["members", workspaceId] });
             toast.success("Member removed");
+        }
+    });
+
+    const leaveWorkspaceMutation = useMutation({
+        mutationFn: async () => {
+            const res = await secureFetch(`/api/workspaces/${workspaceId}/leave`, {
+                method: "POST"
+            });
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || "Failed to leave workspace");
+            }
+        },
+        onSuccess: () => {
+            toast.success("You have left the workspace");
+
+            queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+            clearWorkspace();
+            refreshWorkspaces();
+
+            navigate("/workspaces");
+        },
+        onError: (err: any) => {
+            toast.error(err.message);
         }
     });
 
@@ -216,8 +243,17 @@ export const MembersPage = () => {
                                             <RoleBadge role={member.role} />
                                         )}
 
-                                        {/* Delete user button */}
-                                        {isAdmin && !isMe ? <RemoveMemberDialog member={member} removeMemberMutation={removeMemberMutation} /> : <div className="w-8" /> }
+                                        {/* Delete user/leave workspace button */}
+                                        {isMe ? (
+                                            <LeaveWorkspaceDialog
+                                                onLeave={() => leaveWorkspaceMutation.mutate()}
+                                                isPending={leaveWorkspaceMutation.isPending}
+                                            />
+                                        ) : isAdmin ? (
+                                            <RemoveMemberDialog member={member} removeMemberMutation={removeMemberMutation} />
+                                        ) : (
+                                            <div className="w-8" />
+                                        )}
                                     </div>
                                 </div>
                             )

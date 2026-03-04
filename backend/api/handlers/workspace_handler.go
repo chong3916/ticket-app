@@ -152,8 +152,15 @@ func (h *WorkspaceHandler) InviteMember(c *gin.Context) {
 }
 
 func (h *WorkspaceHandler) RemoveMember(c *gin.Context) {
-	wsID, _ := uuid.Parse(c.Param("id"))
-	memberID, err := uuid.Parse(c.Param("member_id"))
+	wsIDStr := c.Param("id")
+	wsID, err := uuid.Parse(wsIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workspace id"})
+		return
+	}
+
+	memberIDStr := c.Param("member_id")
+	memberID, err := uuid.Parse(memberIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid member id"})
 		return
@@ -167,8 +174,15 @@ func (h *WorkspaceHandler) RemoveMember(c *gin.Context) {
 }
 
 func (h *WorkspaceHandler) UpdateMemberRole(c *gin.Context) {
-	wsID, _ := uuid.Parse(c.Param("id"))
-	memberID, err := uuid.Parse(c.Param("member_id"))
+	wsIDStr := c.Param("id")
+	wsID, err := uuid.Parse(wsIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workspace id"})
+		return
+	}
+
+	memberIDStr := c.Param("member_id")
+	memberID, err := uuid.Parse(memberIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid member id"})
 		return
@@ -185,4 +199,37 @@ func (h *WorkspaceHandler) UpdateMemberRole(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "role updated"})
+}
+
+func (h *WorkspaceHandler) LeaveWorkspace(c *gin.Context) {
+	wsIDStr := c.Param("id")
+	wsID, err := uuid.Parse(wsIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workspace id"})
+		return
+	}
+
+	val, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userIDStr, ok := val.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user context"})
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user id format"})
+		return
+	}
+
+	if err := h.Service.RemoveMember(c.Request.Context(), wsID, userID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "successfully left workspace"})
 }

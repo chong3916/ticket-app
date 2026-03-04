@@ -57,14 +57,14 @@ export const Sidebar = () => {
                 </nav>
 
                 <div className="mt-auto p-4 border-t">
-                    {userRole && (
+                    {currentWorkspace && userRole && (
                         <div className="px-3 mb-4">
                             <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground bg-muted px-2 py-1 rounded">
                                 Role: {userRole}
                             </span>
                         </div>
                     )}
-                    
+
                     <Button variant="ghost" onClick={logout} className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10">
                         <LogOut className="h-4 w-4" />
                         Logout

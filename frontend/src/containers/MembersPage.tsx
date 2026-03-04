@@ -14,6 +14,7 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select";
+import { useWorkspace } from "@/context/WorkspaceContext.tsx";
 
 const RoleBadge = ({ role }: { role: string }) => {
     const configs: Record<string, { icon: any, color: string }> = {
@@ -34,11 +35,15 @@ const RoleBadge = ({ role }: { role: string }) => {
 
 export const MembersPage = () => {
     const { id: workspaceId } = useParams();
+    const { currentWorkspace } = useWorkspace();
     const { secureFetch } = useApi();
+
     const queryClient = useQueryClient();
     const [email, setEmail] = useState("");
     const [role, setRole] = useState("member");
     const [isInviting, setIsInviting] = useState(false);
+
+    const isAdmin = currentWorkspace?.role === 'admin';
 
     // Fetch members
     const { data: members, isLoading } = useQuery({
@@ -90,50 +95,54 @@ export const MembersPage = () => {
         <div className="max-w-4xl mx-auto space-y-8">
             <header>
                 <h1 className="text-3xl font-bold tracking-tight">Members</h1>
-                <p className="text-muted-foreground">Manage who has access to this workspace.</p>
+                {isAdmin
+                    ? "Manage who has access to this workspace."
+                    : "View the team members in this workspace."}
             </header>
 
             {/* Invite Section */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <UserPlus className="h-5 w-5" /> Invite New Member
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleInvite} className="flex gap-2">
-                        <div className="relative flex-1">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="colleague@example.com"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="pl-10"
-                                required
-                            />
-                        </div>
+            {isAdmin && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <UserPlus className="h-5 w-5" /> Invite New Member
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleInvite} className="flex gap-2">
+                            <div className="relative flex-1">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="colleague@example.com"
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="pl-10"
+                                    required
+                                />
+                            </div>
 
-                        <div className="flex-[1]">
-                            <Select value={role} onValueChange={setRole}>
-                                <SelectTrigger className="h-10">
-                                    <SelectValue placeholder="Select Role" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="viewer">Viewer</SelectItem>
-                                    <SelectItem value="member">Member</SelectItem>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                            <div className="flex-[1]">
+                                <Select value={role} onValueChange={setRole}>
+                                    <SelectTrigger className="h-10">
+                                        <SelectValue placeholder="Select Role" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="viewer">Viewer</SelectItem>
+                                        <SelectItem value="member">Member</SelectItem>
+                                        <SelectItem value="admin">Admin</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
-                        <Button type="submit" disabled={isInviting}>
-                            {isInviting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Send Invite
-                        </Button>
-                    </form>
-                </CardContent>
-            </Card>
+                            <Button type="submit" disabled={isInviting}>
+                                {isInviting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Send Invite
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Members List */}
             <Card>

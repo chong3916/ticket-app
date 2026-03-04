@@ -127,7 +127,11 @@ export const TicketBoard = () => {
         return (
             <div className="p-8 text-center border-2 border-dashed rounded-lg">
                 <p className="text-muted-foreground mb-4">No board configuration found for this workspace.</p>
-                <AddColumnButton onAdd={handleAddColumn} />
+                {isAdmin ? (
+                    <AddColumnButton onAdd={handleAddColumn} />
+                ) : (
+                    <p className="text-sm italic">Only an administrator can set up the board.</p>
+                )}
             </div>
         );
     }

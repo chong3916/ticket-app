@@ -26,6 +26,7 @@ import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers.ts";
 
 export const TicketBoard = () => {
     const { currentWorkspace } = useWorkspace();
+    const isAdmin = currentWorkspace?.role === 'admin';
 
     const { data: board, isLoading: boardLoading } = useWorkspaceBoard();
     const { data: tickets, isLoading: ticketsLoading } = useWorkspaceTickets();
@@ -151,7 +152,7 @@ export const TicketBoard = () => {
                             onTicketClick={(ticket) => setViewingTicketId(ticket.id)}
                         />
                     ))}
-                    <AddColumnButton onAdd={handleAddColumn} />
+                    {isAdmin && <AddColumnButton onAdd={handleAddColumn} />}
                 </div>
             </div>
 

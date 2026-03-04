@@ -1,6 +1,7 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from "@/context/AuthContext.tsx";
 import { useApi } from "@/hooks/useApi.ts";
+import { useInvitations } from "@/hooks/useInvitations.ts";
 
 interface Workspace {
     id: string;
@@ -18,10 +19,10 @@ interface WorkspaceContextType {
     invitations: Invitation[];
     currentWorkspace: Workspace | null;
     isLoading: boolean;
+    isInvitesLoading: boolean;
     setWorkspace: (workspace: Workspace) => void;
     setWorkspaceById: (id: string) => void;
     refreshWorkspaces: () => Promise<void>;
-    refreshInvitations: () => Promise<void>;
     clearWorkspace: () => void;
 }
 
@@ -30,6 +31,7 @@ const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefin
 export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { token } = useAuth();
     const { secureFetch } = useApi();
+    const { data: invitations = [], isLoading: isInvitesLoading } = useInvitations();
 
     const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -37,8 +39,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const saved = localStorage.getItem('active_workspace');
         return saved ? JSON.parse(saved) : null;
     });
-
-    const [invitations, setInvitations] = useState<any[]>([]);
 
     const refreshWorkspaces = async () => {
         if (!token) return;
@@ -52,26 +52,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             setIsLoading(false);
         }
     };
-
-    const refreshInvitations = async () => {
-        if (!token) return;
-        try {
-            const res = await secureFetch("/api/invites/pending");
-            const data = await res.json();
-            setInvitations(data);
-        } catch (err) {
-            console.error("Failed to fetch invites", err);
-        }
-    };
-
-    const setWorkspaceById = useCallback((id: string) => {
-        if (workspaces.length === 0) return;
-
-        const ws = workspaces.find(w => w.id === id);
-        if (ws) {
-            setWorkspace(ws);
-        }
-    }, [workspaces]);
 
     const setWorkspace = (workspace: Workspace) => {
         localStorage.setItem('active_workspace', JSON.stringify(workspace));
@@ -87,7 +67,6 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     useEffect(() => {
         if (token) {
             refreshWorkspaces();
-            refreshInvitations();
         } else {
             clearWorkspace();
         }
@@ -99,10 +78,13 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             invitations,
             currentWorkspace,
             isLoading,
+            isInvitesLoading,
             setWorkspace,
-            setWorkspaceById,
+            setWorkspaceById: (id: string) => {
+                const ws = workspaces.find(w => w.id === id);
+                if (ws) setWorkspace(ws);
+            },
             refreshWorkspaces,
-            refreshInvitations,
             clearWorkspace
         }}>
             {children}

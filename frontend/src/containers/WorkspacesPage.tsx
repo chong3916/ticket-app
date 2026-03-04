@@ -23,36 +23,7 @@ export const WorkspacesPage = () => {
                 </div>
             </div>
 
-            {workspaces.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-lg bg-white">
-                    <Layout className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h2 className="text-xl font-semibold">No workspaces yet</h2>
-                    <p className="text-muted-foreground mb-6">Create your first workspace to get started.</p>
-                    <CreateWorkspaceDrawer />
-                </div>
-            ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {workspaces.map((ws) => (
-                        <Card
-                            key={ws.id}
-                            className="hover:border-primary cursor-pointer transition-all group"
-                            onClick={() => navigate(`/workspaces/${ws.id}/board`)}
-                        >
-                            <CardHeader>
-                                <div className="flex justify-between items-start">
-                                    <div className="bg-primary/10 p-2 rounded-lg text-primary">
-                                        <Layout className="h-5 w-5" />
-                                    </div>
-                                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </div>
-                                <CardTitle className="mt-4">{ws.name}</CardTitle>
-                                <CardDescription>Workspace ID: {ws.id.slice(0, 8)}...</CardDescription>
-                            </CardHeader>
-                        </Card>
-                    ))}
-                </div>
-            )}
-
+            {/* Invitations */}
             {invitations.length > 0 && (
                 <section className="space-y-4">
                     <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -84,6 +55,36 @@ export const WorkspacesPage = () => {
                     open={!!selectedInvite}
                     onOpenChange={(open: boolean) => !open && setSelectedInvite(null)}
                 />
+            )}
+
+            {workspaces.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-lg bg-white">
+                    <Layout className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h2 className="text-xl font-semibold">No workspaces yet</h2>
+                    <p className="text-muted-foreground mb-6">Create your first workspace to get started.</p>
+                    <CreateWorkspaceDrawer />
+                </div>
+            ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {workspaces.map((ws) => (
+                        <Card
+                            key={ws.id}
+                            className="hover:border-primary cursor-pointer transition-all group"
+                            onClick={() => navigate(`/workspaces/${ws.id}/board`)}
+                        >
+                            <CardHeader>
+                                <div className="flex justify-between items-start">
+                                    <div className="bg-primary/10 p-2 rounded-lg text-primary">
+                                        <Layout className="h-5 w-5" />
+                                    </div>
+                                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                                <CardTitle className="mt-4">{ws.name}</CardTitle>
+                                <CardDescription>Workspace ID: {ws.id.slice(0, 8)}...</CardDescription>
+                            </CardHeader>
+                        </Card>
+                    ))}
+                </div>
             )}
         </div>
     );

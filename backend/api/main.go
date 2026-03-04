@@ -27,7 +27,7 @@ func main() {
 	boardService := services.NewBoardService(boardRepo)
 	wsService := services.NewWorkspaceService(wsRepo, boardService)
 	ticketService := services.NewTicketService(ticketRepo, wsRepo, boardRepo)
-	invitationService := services.NewInvitationService(invitationRepo, wsRepo)
+	invitationService := services.NewInvitationService(invitationRepo, wsRepo, userRepo)
 
 	userHandler := handlers.NewUserHandler(userService)
 	boardHandler := handlers.NewBoardHandler(boardService)

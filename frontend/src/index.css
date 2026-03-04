@@ -139,3 +139,13 @@
     @apply font-sans;
   }
 }
+
+[data-sonner-toast] [data-description],
+[data-sonner-toast] [data-title] {
+  display: block;
+}
+
+[data-sonner-toast] [data-description]::first-letter,
+[data-sonner-toast] [data-title]::first-letter {
+  text-transform: uppercase;
+}

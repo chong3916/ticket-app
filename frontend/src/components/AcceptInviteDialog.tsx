@@ -12,11 +12,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MailOpen, Loader2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const AcceptInviteDialog = ({ invite, open, onOpenChange }: any) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { secureFetch } = useApi();
-    const { refreshWorkspaces, refreshInvitations } = useWorkspace();
+    const { refreshWorkspaces } = useWorkspace();
+    const queryClient = useQueryClient();
 
     const handleAccept = async () => {
         setIsSubmitting(true);
@@ -29,8 +31,10 @@ export const AcceptInviteDialog = ({ invite, open, onOpenChange }: any) => {
             if (!res.ok) throw new Error("Failed to join workspace");
 
             toast.success(`Joined ${invite.workspace_name}!`);
+
+            await queryClient.invalidateQueries({ queryKey: ["pending-invitations"] });
+
             await refreshWorkspaces();
-            await refreshInvitations();
             onOpenChange(false);
         } catch (err: any) {
             toast.error(err.message);

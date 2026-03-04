@@ -10,18 +10,19 @@ interface BoardColumnProps {
     title: string;
     statusKey: string;
     tickets: Ticket[];
+    canCreate: boolean;
     onCreateTicket: (status: string) => void;
     onTicketClick: (ticket: Ticket) => void;
 }
 
-export const BoardColumn = ({ id, title, statusKey, tickets, onCreateTicket, onTicketClick }: BoardColumnProps) => {
-    const { setNodeRef, isOver } = useDroppable({ id });
+export const BoardColumn = ({ id, title, statusKey, tickets, canCreate, onCreateTicket, onTicketClick }: BoardColumnProps) => {
+    const { setNodeRef, isOver } = useDroppable({ id, disabled: !canCreate });
 
     return (
         <div
             ref={setNodeRef}
             className={`flex flex-col rounded-lg p-4 w-full min-h-[600px] border transition-colors ${
-                isOver ? "bg-indigo-50 border-indigo-200 shadow-inner" : "bg-slate-100/50 border-slate-200"
+                isOver && canCreate ? "bg-indigo-50 border-indigo-200 shadow-inner" : "bg-slate-100/50 border-slate-200"
             }`}
         >
             {/* Column Header */}
@@ -32,14 +33,16 @@ export const BoardColumn = ({ id, title, statusKey, tickets, onCreateTicket, onT
                         {tickets.length}
                     </span>
                 </div>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-slate-400 hover:text-indigo-600"
-                    onClick={() => onCreateTicket(statusKey)}
-                >
-                    <PlusIcon className="h-4 w-4" />
-                </Button>
+                {canCreate && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-slate-400 hover:text-indigo-600"
+                        onClick={() => onCreateTicket(statusKey)}
+                    >
+                        <PlusIcon className="h-4 w-4" />
+                    </Button>
+                )}
             </div>
 
             {/* Ticket List */}
@@ -47,7 +50,7 @@ export const BoardColumn = ({ id, title, statusKey, tickets, onCreateTicket, onT
                 <div className="space-y-4 flex-1">
                     {tickets.length > 0 ? (
                         tickets.map((ticket: Ticket) => (
-                            <SortableTicket key={ticket.id} ticket={ticket} onClick={() => onTicketClick(ticket)} />
+                            <SortableTicket key={ticket.id} ticket={ticket} isDraggable={canCreate} onClick={() => onTicketClick(ticket)} />
                         ))
                     ) : (
                         <div className="h-24 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400 text-xs italic">

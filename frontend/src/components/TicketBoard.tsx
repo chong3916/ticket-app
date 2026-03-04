@@ -27,6 +27,7 @@ import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers.ts";
 export const TicketBoard = () => {
     const { currentWorkspace } = useWorkspace();
     const isAdmin = currentWorkspace?.role === 'admin';
+    const canEdit = currentWorkspace?.role === 'admin' || currentWorkspace?.role === 'member';
 
     const { data: board, isLoading: boardLoading } = useWorkspaceBoard();
     const { data: tickets, isLoading: ticketsLoading } = useWorkspaceTickets();
@@ -55,12 +56,18 @@ export const TicketBoard = () => {
     };
 
     const handleDragStart = (event: DragStartEvent) => {
+        if (!canEdit) return;
         const { active } = event;
         const ticket = tickets?.find((t: any) => t.id === active.id);
         setActiveTicket(ticket);
     };
 
     const handleDragEnd = async (event: DragEndEvent) => {
+        if (!canEdit) {
+            setActiveTicket(null);
+            return;
+        }
+
         const { active, over } = event;
         setActiveTicket(null);
 
@@ -152,6 +159,7 @@ export const TicketBoard = () => {
                             title={col.name}
                             statusKey={col.status_key}
                             tickets={tickets?.filter((t: any) => t.status === col.status_key) || []}
+                            canCreate={canEdit}
                             onCreateTicket={handleCreateClick}
                             onTicketClick={(ticket) => setViewingTicketId(ticket.id)}
                         />

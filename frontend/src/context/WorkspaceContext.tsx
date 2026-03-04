@@ -7,13 +7,21 @@ interface Workspace {
     name: string;
 }
 
+interface Invitation {
+    id: string;
+    workspace_name: string;
+    inviter_name: string;
+}
+
 interface WorkspaceContextType {
     workspaces: Workspace[];
+    invitations: Invitation[];
     currentWorkspace: Workspace | null;
     isLoading: boolean;
     setWorkspace: (workspace: Workspace) => void;
     setWorkspaceById: (id: string) => void;
     refreshWorkspaces: () => Promise<void>;
+    refreshInvitations: () => Promise<void>;
     clearWorkspace: () => void;
 }
 
@@ -30,6 +38,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return saved ? JSON.parse(saved) : null;
     });
 
+    const [invitations, setInvitations] = useState<any[]>([]);
+
     const refreshWorkspaces = async () => {
         if (!token) return;
         try {
@@ -40,6 +50,17 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             console.error("Failed to fetch workspaces", err);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const refreshInvitations = async () => {
+        if (!token) return;
+        try {
+            const res = await secureFetch("/api/invites/pending");
+            const data = await res.json();
+            setInvitations(data);
+        } catch (err) {
+            console.error("Failed to fetch invites", err);
         }
     };
 
@@ -66,6 +87,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     useEffect(() => {
         if (token) {
             refreshWorkspaces();
+            refreshInvitations();
         } else {
             clearWorkspace();
         }
@@ -74,11 +96,13 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return (
         <WorkspaceContext.Provider value={{
             workspaces,
+            invitations,
             currentWorkspace,
             isLoading,
             setWorkspace,
             setWorkspaceById,
             refreshWorkspaces,
+            refreshInvitations,
             clearWorkspace
         }}>
             {children}

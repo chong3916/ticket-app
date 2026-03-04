@@ -3,10 +3,15 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 import { Layout, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { CreateWorkspaceDrawer } from "@/components/CreateWorkspaceDrawer";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { AcceptInviteDialog } from "@/components/AcceptInviteDialog.tsx";
+
 
 export const WorkspacesPage = () => {
-    const { workspaces, isLoading } = useWorkspace();
+    const { workspaces, invitations, isLoading } = useWorkspace();
     const navigate = useNavigate();
+    const [selectedInvite, setSelectedInvite] = useState<any>(null);
 
     if (isLoading) return <div className="p-8">Loading workspaces...</div>;
 
@@ -46,6 +51,39 @@ export const WorkspacesPage = () => {
                         </Card>
                     ))}
                 </div>
+            )}
+
+            {invitations.length > 0 && (
+                <section className="space-y-4">
+                    <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                        Pending Invitations ({invitations.length})
+                    </h2>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {invitations.map((invite) => (
+                            <Card
+                                key={invite.id}
+                                className="border-primary/50 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors"
+                                onClick={() => setSelectedInvite(invite)}
+                            >
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <div>
+                                        <CardTitle className="text-md">{invite.workspace_name}</CardTitle>
+                                        <CardDescription>Invited by {invite.inviter_name}</CardDescription>
+                                    </div>
+                                    <Button size="sm">View Invite</Button>
+                                </CardHeader>
+                            </Card>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {selectedInvite && (
+                <AcceptInviteDialog
+                    invite={selectedInvite}
+                    open={!!selectedInvite}
+                    onOpenChange={(open: boolean) => !open && setSelectedInvite(null)}
+                />
             )}
         </div>
     );

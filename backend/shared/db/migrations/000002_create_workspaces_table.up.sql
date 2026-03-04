@@ -25,3 +25,8 @@ CREATE TABLE workspace_invitations (
 );
 
 CREATE INDEX idx_invitation_token ON workspace_invitations(token);
+CREATE INDEX idx_invitation_email ON workspace_invitations(email);
+
+CREATE UNIQUE INDEX idx_unique_pending_invitation
+    ON workspace_invitations (workspace_id, email)
+    WHERE status = 'pending';

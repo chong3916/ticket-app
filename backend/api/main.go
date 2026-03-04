@@ -72,6 +72,7 @@ func main() {
 		api.POST("/workspaces/:id/board/columns", boardHandler.AddColumn)
 
 		api.POST("/invites/accept", invitationHandler.AcceptInvite)
+		api.GET("/invites/pending", invitationHandler.GetMyInvites)
 	}
 
 	log.Println("Server starting on :8080")

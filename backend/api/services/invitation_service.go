@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"github.com/chong3916/todo-app/backend/shared/db"
+	"github.com/chong3916/todo-app/backend/shared/models"
 	"github.com/google/uuid"
 	"strings"
 )
@@ -55,4 +56,8 @@ func (s *InvitationService) AcceptInvitation(ctx context.Context, token string, 
 	}
 
 	return s.InvitationRepo.MarkAsAccepted(ctx, token)
+}
+
+func (s *InvitationService) GetPendingByEmail(ctx context.Context, email string) ([]models.InvitationView, error) {
+	return s.InvitationRepo.GetPendingByEmail(ctx, email)
 }

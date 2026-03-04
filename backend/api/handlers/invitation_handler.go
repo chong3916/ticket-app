@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/chong3916/todo-app/backend/api/services"
+	"github.com/chong3916/todo-app/backend/shared/models"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"net/http"
@@ -61,4 +62,30 @@ func (h *InvitationHandler) AcceptInvite(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Joined workspace successfully"})
+}
+
+func (h *InvitationHandler) GetMyInvites(c *gin.Context) {
+	val, exists := c.Get("user_email")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userEmail, ok := val.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user context"})
+		return
+	}
+
+	invites, err := h.Service.GetPendingByEmail(c.Request.Context(), userEmail)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch invites"})
+		return
+	}
+
+	if invites == nil {
+		invites = []models.InvitationView{}
+	}
+
+	c.JSON(http.StatusOK, invites)
 }

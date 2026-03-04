@@ -18,6 +18,7 @@ import {
 import { InlineInput, InlineTextarea } from "@/components/InlineInput.tsx";
 import { DeleteTicketDialog } from "@/components/DeleteTicketDialog.tsx";
 import { Button } from "@/components/ui/button"
+import { useWorkspace } from "@/context/WorkspaceContext.tsx";
 
 const priorities = ["low", "medium", "high", "urgent"];
 
@@ -32,6 +33,8 @@ const FIELD_DISPLAY_NAMES: Record<string, string> = {
 
 export const TicketDialog = ({ ticket, board, members, open, onOpenChange }: { ticket: any, board?: any, members: any[],  open: boolean; onOpenChange: (open: boolean) => void }) => {
     const { secureFetch } = useApi();
+    const { currentWorkspace } = useWorkspace();
+
     const queryClient = useQueryClient();
     const [isUpdating, setIsUpdating] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -52,7 +55,7 @@ export const TicketDialog = ({ ticket, board, members, open, onOpenChange }: { t
 
         setIsUpdating(true);
         try {
-            const res = await secureFetch(`/api/tickets/${ticket.id}`, {
+            const res = await secureFetch(`/api/workspaces/${currentWorkspace?.id}/tickets/${ticket.id}`, {
                 method: "PATCH",
                 body: JSON.stringify({ [field]: value }),
             });
@@ -80,7 +83,7 @@ export const TicketDialog = ({ ticket, board, members, open, onOpenChange }: { t
         onOpenChange(false);
 
         try {
-            const res = await secureFetch(`/api/tickets/${ticket.id}`, {
+            const res = await secureFetch(`/api/workspaces/${currentWorkspace?.id}/tickets/${ticket.id}`, {
                 method: "DELETE",
             });
 

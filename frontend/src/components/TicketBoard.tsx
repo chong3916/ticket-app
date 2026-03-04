@@ -82,7 +82,7 @@ export const TicketBoard = () => {
         });
 
         try {
-            const res = await secureFetch(`/api/tickets/${ticketId}`, {
+            const res = await secureFetch(`/api/workspaces/${currentWorkspace?.id}/tickets/${ticketId}`, {
                 method: 'PATCH',
                 body: JSON.stringify({ status: newStatus }),
             });

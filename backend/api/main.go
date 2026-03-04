@@ -59,11 +59,6 @@ func main() {
 
 	protected := r.Group("/api", middleware.AuthMiddleware())
 	{
-		protected.GET("/tickets", ticketHandler.GetCreatorTicket)
-		protected.POST("/tickets", ticketHandler.CreateTicket)
-		protected.PATCH("/tickets/:id", ticketHandler.UpdateTicket)
-		protected.DELETE("/tickets/:id", ticketHandler.DeleteTicket)
-
 		protected.POST("/workspaces", wsHandler.CreateWorkspace)
 		protected.GET("/workspaces", wsHandler.GetUserWorkspaces)
 
@@ -72,7 +67,10 @@ func main() {
 
 		ws := protected.Group("/workspaces/:id")
 		{
-			ws.GET("/tickets", ticketHandler.GetWorkspaceTickets)
+			ws.GET("/tickets", middleware.RequireRole(wsRepo, "admin", "member", "viewer"), ticketHandler.GetWorkspaceTickets)
+			ws.POST("/tickets", middleware.RequireRole(wsRepo, "admin", "member"), ticketHandler.CreateTicket)
+			ws.PATCH("/tickets/:ticket_id", middleware.RequireRole(wsRepo, "admin", "member"), ticketHandler.UpdateTicket)
+			ws.DELETE("/tickets/:ticket_id", middleware.RequireRole(wsRepo, "admin", "member"), ticketHandler.DeleteTicket)
 
 			ws.GET("/members", middleware.RequireRole(wsRepo, "admin", "member", "viewer"), wsHandler.GetWorkspaceMembers)
 			ws.POST("/invite", middleware.RequireRole(wsRepo, "admin"), wsHandler.InviteMember)

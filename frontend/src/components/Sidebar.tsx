@@ -2,34 +2,52 @@ import { LayoutDashboard, LogOut, Settings, Users } from "lucide-react";
 import { WorkspaceSwitcher } from "@/components/WorkspaceSwitcher.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { useAuth } from "@/context/AuthContext.tsx";
-import { NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/context/WorkspaceContext.tsx";
 
 export const Sidebar = () => {
+    const navigate = useNavigate();
     const { logout } = useAuth();
-    const { currentWorkspace, userRole } = useWorkspace();
+    const { currentWorkspace, userRole, clearWorkspace, isLoading } = useWorkspace();
+
+    console.log("Current WS:", currentWorkspace)
+
 
     const getPath = (tab: string) =>
         currentWorkspace ? `/workspaces/${currentWorkspace.id}/${tab}` : "/";
 
-    const navItems = currentWorkspace ? [
+    const navItems = (currentWorkspace?.id && !isLoading) ? [
         { label: "Board", icon: LayoutDashboard, path: getPath("board"), show: true },
         { label: "Members", icon: Users, path: getPath("members"), show: true },
         { label: "Settings", icon: Settings, path: getPath("settings"), show: userRole === 'admin' },
     ] : [];
 
+    const handleLogoClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("LOGO CLICKED: Clearing and Navigating");
+        clearWorkspace();
+        navigate("/workspaces", { replace: true });
+    };
+
     return (
         <aside className="hidden w-64 border-r bg-white md:block">
             <div className="flex h-full flex-col gap-4">
-                <div className="flex items-center gap-2 font-bold px-6 py-6 text-xl">
-                    <div className="bg-primary text-white p-1 rounded">
-                        <LayoutDashboard className="h-5 w-5" />
-                    </div>
-                    <span>Ticket Manager</span>
+                <div className="px-6 py-6">
+                    <Link
+                        to="/"
+                        onClick={handleLogoClick}
+                        className="flex items-center gap-2 font-bold text-xl hover:opacity-80 transition-opacity"
+                    >
+                        <div className="bg-primary text-white p-1 rounded">
+                            <LayoutDashboard className="h-5 w-5" />
+                        </div>
+                        <span>Ticket Manager</span>
+                    </Link>
                 </div>
 
-                <WorkspaceSwitcher />
+                <WorkspaceSwitcher key={currentWorkspace?.id ?? 'none'} />
 
                 <nav className="grid gap-1 px-4">
                     {navItems.map((item) => (

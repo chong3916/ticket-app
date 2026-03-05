@@ -81,13 +81,14 @@ export const WorkspaceSettingsPage = () => {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>General</CardTitle>
+                    <CardTitle className="text-lg">General</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Workspace Name</label>
+                    <div className="space-y-0.5">
+                        <label className="text-sm font-medium block mb-2" htmlFor="workspace-name">Workspace Name</label>
                         <div className="flex gap-2">
                             <Input
+                                id="workspace-name"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 className="max-w-md"
@@ -105,7 +106,7 @@ export const WorkspaceSettingsPage = () => {
 
             <Card className="border-red-200 bg-red-50/30">
                 <CardHeader>
-                    <CardTitle className="text-red-600">Danger Zone</CardTitle>
+                    <CardTitle className="text-red-600 text-lg">Danger Zone</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center justify-between gap-4">

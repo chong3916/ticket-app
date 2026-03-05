@@ -152,9 +152,12 @@ export const MembersPage = () => {
         <div className="max-w-4xl mx-auto space-y-8">
             <header>
                 <h1 className="text-3xl font-bold tracking-tight">Members</h1>
-                {isAdmin
-                    ? "Manage who has access to this workspace."
-                    : "View the team members in this workspace."}
+                <p className="text-muted-foreground">
+                    {isAdmin
+                        ? "Manage who has access to this workspace."
+                        : "View the team members in this workspace."
+                    }
+                </p>
             </header>
 
             {/* Invite Section */}

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "@/hooks/useApi";
 import { useWorkspace } from "@/context/WorkspaceContext";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -106,15 +106,18 @@ export const WorkspaceSettingsPage = () => {
             <Card className="border-red-200 bg-red-50/30">
                 <CardHeader>
                     <CardTitle className="text-red-600">Danger Zone</CardTitle>
-                    <CardDescription>
-                        Permanently delete this workspace and all of its data. This action cannot be undone.
-                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <DeleteWorkspaceDialog
-                        onDelete={() => deleteWorkspace.mutate()}
-                        isPending={deleteWorkspace.isPending}
-                    />
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="space-y-0.5">
+                            <p className="text-sm font-semibold">Delete Workspace</p>
+                            <p className="text-sm text-muted-foreground">Permanently delete this workspace and all of its data. This action cannot be undone.</p>
+                        </div>
+                        <DeleteWorkspaceDialog
+                            onDelete={() => deleteWorkspace.mutate()}
+                            isPending={deleteWorkspace.isPending}
+                        />
+                    </div>
                 </CardContent>
             </Card>
         </div>

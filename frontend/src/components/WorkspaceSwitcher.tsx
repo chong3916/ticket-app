@@ -16,15 +16,17 @@ export const WorkspaceSwitcher = () => {
     const { data: workspaces, isLoading } = useUserWorkspaces();
     const navigate = useNavigate();
 
+    const activeWorkspace = workspaces?.find((w: any) => w.id === currentWorkspace?.id) || currentWorkspace;
+
     if (isLoading) return <div className="h-10 w-full animate-pulse bg-muted rounded-md" />;
 
     return (
-        <div className="flex flex-col gap-2 p-4">
+        <div className="flex flex-col gap-2 p-4" key={`${currentWorkspace?.id}-${currentWorkspace?.name}`}>
             <label className="text-xs font-medium text-muted-foreground uppercase">
                 Workspace
             </label>
             <Select
-                value={currentWorkspace?.id}
+                value={activeWorkspace?.id}
                 onValueChange={(id) => {
                     const selected = workspaces?.find((w: any) => w.id === id);
                     if (selected) {
@@ -35,7 +37,9 @@ export const WorkspaceSwitcher = () => {
             >
                 <SelectTrigger className="w-full flex gap-2">
                     <Building2 className="h-4 w-4" />
-                    <SelectValue placeholder="Select Workspace" />
+                    <SelectValue>
+                        {currentWorkspace?.name || "Select Workspace"}
+                    </SelectValue>
                 </SelectTrigger>
                 <SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
                     {workspaces?.map((ws: any) => (

@@ -76,6 +76,9 @@ func main() {
 			ws.PATCH("/members/:member_id/role", middleware.RequireRole(wsRepo, "admin"), wsHandler.UpdateMemberRole)
 			ws.DELETE("/members/:member_id", middleware.RequireRole(wsRepo, "admin"), wsHandler.RemoveMember)
 
+			ws.PATCH("", middleware.RequireRole(wsRepo, "admin"), wsHandler.UpdateWorkspaceName)
+			ws.DELETE("", middleware.RequireRole(wsRepo, "admin"), wsHandler.DeleteWorkspace)
+
 			ws.POST("/leave", wsHandler.LeaveWorkspace)
 			ws.POST("/invite", middleware.RequireRole(wsRepo, "admin"), wsHandler.InviteMember)
 			ws.GET("/board", middleware.RequireRole(wsRepo, "admin", "member", "viewer"), boardHandler.GetWorkspaceBoard)

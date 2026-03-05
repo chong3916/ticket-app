@@ -14,7 +14,7 @@ interface WorkspaceContextType {
     isInvitesLoading: boolean;
     setWorkspace: (workspace: Workspace) => void;
     setWorkspaceById: (id: string) => void;
-    refreshWorkspaces: () => Promise<void>;
+    refreshWorkspaces: (targetId?: string) => Promise<void>;
     clearWorkspace: () => void;
 }
 
@@ -40,21 +40,25 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return null;
     });
 
-    const refreshWorkspaces = async () => {
+    const refreshWorkspaces = async (targetId?: string) => {
         if (!token) return;
         try {
             const res = await secureFetch("/api/workspaces");
             const data = await res.json();
             setWorkspaces(data);
 
-            if (currentWorkspace) {
-                const updatedWs = data.find((w: any) => w.id === currentWorkspace.id);
-                if (updatedWs) {
-                    setCurrentWorkspace(updatedWs);
-                    setUserRole(updatedWs.role);
-                    localStorage.setItem('active_workspace', JSON.stringify(updatedWs));
+            setCurrentWorkspace((prev) => {
+                const idToSync = targetId || prev?.id;
+                if (idToSync) {
+                    const updated = data.find((w: any) => w.id === idToSync);
+                    if (updated) {
+                        localStorage.setItem('active_workspace', JSON.stringify(updated));
+                        setUserRole(updated.role);
+                        return { ...updated };
+                    }
                 }
-            }
+                return prev;
+            });
         } catch (err) {
             console.error("Failed to fetch workspaces", err);
         } finally {
@@ -62,11 +66,11 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
     };
 
-    const setWorkspace = (workspace: Workspace) => {
+    const setWorkspace = React.useCallback((workspace: Workspace) => {
         localStorage.setItem('active_workspace', JSON.stringify(workspace));
         setCurrentWorkspace(workspace);
         setUserRole(workspace.role);
-    };
+    }, []);
 
     const clearWorkspace = () => {
         localStorage.removeItem('active_workspace');

@@ -215,3 +215,15 @@ func (r *WorkspaceRepository) GetAdminCount(ctx context.Context, workspaceID uui
 	err := r.db.QueryRow(ctx, query, workspaceID).Scan(&count)
 	return count, err
 }
+
+func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, workspaceID uuid.UUID) error {
+	query := `DELETE FROM workspaces WHERE id = $1`
+	_, err := r.db.Exec(ctx, query, workspaceID)
+	return err
+}
+
+func (r *WorkspaceRepository) UpdateWorkspaceName(ctx context.Context, id uuid.UUID, name string) error {
+	query := `UPDATE workspaces SET name = $2, updated_at = NOW() WHERE id = $1`
+	_, err := r.db.Exec(ctx, query, id, name)
+	return err
+}

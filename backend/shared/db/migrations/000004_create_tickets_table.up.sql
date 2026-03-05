@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS tickets (
     id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workspace_id UUID NOT NULL REFERENCES workspaces(id),
-    creator_id   UUID NOT NULL REFERENCES users(id),
-    assignee_id  UUID REFERENCES users(id),
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    creator_id   UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    assignee_id  UUID REFERENCES users(id) ON DELETE SET NULL,
     title        TEXT NOT NULL,
     description  TEXT,
     priority     TEXT NOT NULL DEFAULT 'medium',

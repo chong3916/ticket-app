@@ -105,3 +105,23 @@ func (s *WorkspaceService) UpdateMemberRole(ctx context.Context, workspaceID, us
 
 	return s.Repo.UpdateMemberRole(ctx, workspaceID, userID, role)
 }
+
+func (s *WorkspaceService) DeleteWorkspace(ctx context.Context, workspaceID, adminID uuid.UUID) error {
+	role, err := s.Repo.GetUserWorkspaceRole(ctx, workspaceID, adminID)
+	if err != nil {
+		return err
+	}
+	if role != "admin" {
+		return errors.New("forbidden: only admins can delete the workspace")
+	}
+
+	return s.Repo.DeleteWorkspace(ctx, workspaceID)
+}
+
+func (s *WorkspaceService) UpdateWorkspaceName(ctx context.Context, workspaceID, adminID uuid.UUID, newName string) error {
+	role, err := s.Repo.GetUserWorkspaceRole(ctx, workspaceID, adminID)
+	if err != nil || role != "admin" {
+		return errors.New("unauthorized: only admins can rename workspaces")
+	}
+	return s.Repo.UpdateWorkspaceName(ctx, workspaceID, newName)
+}

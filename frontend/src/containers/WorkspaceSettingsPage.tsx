@@ -63,7 +63,7 @@ export const WorkspaceSettingsPage = () => {
 
             queryClient.invalidateQueries({ queryKey: ["workspaces"] });
             clearWorkspace();
-            
+
             navigate("/workspaces");
         }
     });
@@ -82,7 +82,6 @@ export const WorkspaceSettingsPage = () => {
             <Card>
                 <CardHeader>
                     <CardTitle>General</CardTitle>
-                    <CardDescription>How others see your workspace.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">

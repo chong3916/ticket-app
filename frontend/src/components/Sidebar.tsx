@@ -11,9 +11,6 @@ export const Sidebar = () => {
     const { logout } = useAuth();
     const { currentWorkspace, userRole, clearWorkspace, isLoading } = useWorkspace();
 
-    console.log("Current WS:", currentWorkspace)
-
-
     const getPath = (tab: string) =>
         currentWorkspace ? `/workspaces/${currentWorkspace.id}/${tab}` : "/";
 
@@ -26,8 +23,9 @@ export const Sidebar = () => {
     const handleLogoClick = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log("LOGO CLICKED: Clearing and Navigating");
+
         clearWorkspace();
+
         navigate("/workspaces", { replace: true });
     };
 

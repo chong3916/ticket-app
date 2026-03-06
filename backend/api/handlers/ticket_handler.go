@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"encoding/json"
 	"github.com/chong3916/todo-app/backend/api/services"
+	"github.com/chong3916/todo-app/backend/api/websocket"
+	"github.com/chong3916/todo-app/backend/shared/models"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"log"
@@ -10,10 +13,11 @@ import (
 
 type TicketHandler struct {
 	Service *services.TicketService
+	hub     *websocket.Hub
 }
 
-func NewTicketHandler(svc *services.TicketService) *TicketHandler {
-	return &TicketHandler{Service: svc}
+func NewTicketHandler(svc *services.TicketService, h *websocket.Hub) *TicketHandler {
+	return &TicketHandler{Service: svc, hub: h}
 }
 
 type CreateTicketRequest struct {
@@ -90,6 +94,14 @@ func (h *TicketHandler) CreateTicket(c *gin.Context) {
 		return
 	}
 
+	// Broadcast event to hub
+	payloadBytes, _ := json.Marshal(result)
+	h.hub.Broadcast <- models.WSEvent{
+		Type:        "TICKET_CREATED",
+		WorkspaceID: workspaceID.String(),
+		Payload:     json.RawMessage(payloadBytes),
+	}
+
 	c.JSON(http.StatusCreated, result)
 }
 
@@ -124,6 +136,13 @@ func (h *TicketHandler) GetCreatorTicket(c *gin.Context) {
 func (h *TicketHandler) UpdateTicket(c *gin.Context) {
 	idParam := c.Param("ticket_id")
 	ticketID, err := uuid.Parse(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ticket id"})
+		return
+	}
+
+	workspaceIdParam := c.Param("id")
+	workspaceID, err := uuid.Parse(workspaceIdParam)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ticket id"})
 		return
@@ -192,6 +211,16 @@ func (h *TicketHandler) UpdateTicket(c *gin.Context) {
 		return
 	}
 
+	// Broadcast event to hub
+	updates["id"] = ticketID
+	payloadBytes, _ := json.Marshal(updates)
+	h.hub.Broadcast <- models.WSEvent{
+		Type:        "TICKET_UPDATED",
+		WorkspaceID: workspaceID.String(),
+		Payload:     json.RawMessage(payloadBytes),
+		SenderID:    userID.String(),
+	}
+
 	c.Status(http.StatusNoContent)
 }
 
@@ -256,12 +285,27 @@ func (h *TicketHandler) DeleteTicket(c *gin.Context) {
 		return
 	}
 
+	workspaceIdParam := c.Param("id")
+	workspaceID, err := uuid.Parse(workspaceIdParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ticket id"})
+		return
+	}
+
 	err = h.Service.DeleteTicket(c.Request.Context(), ticketID, userID)
 	if err != nil {
 		c.Error(err)
 
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	payloadBytes, _ := json.Marshal(gin.H{"ticket_id": ticketID})
+	h.hub.Broadcast <- models.WSEvent{
+		Type:        "TICKET_DELETED",
+		WorkspaceID: workspaceID.String(),
+		Payload:     json.RawMessage(payloadBytes),
+		SenderID:    userID.String(),
 	}
 
 	c.Status(http.StatusNoContent)

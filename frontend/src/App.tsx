@@ -8,12 +8,19 @@ import { TicketBoard } from "@/components/TicketBoard.tsx";
 import { MembersPage } from "@/containers/MembersPage.tsx";
 import { WorkspacesPage } from "@/containers/WorkspacesPage.tsx";
 import { WorkspaceSettingsPage } from "@/containers/WorkspaceSettingsPage.tsx";
+import { useAuth } from "@/context/AuthContext.tsx";
 
 const DashboardRedirect = () => {
     return <Navigate to="/workspaces" replace />;
 };
 
 function App() {
+    const { isLoading } = useAuth();
+
+    if (isLoading) {
+        return <div className="h-screen w-screen flex items-center justify-center">Loading session...</div>;
+    }
+
     return (
         <>
             <Toaster position="top-center" richColors />

@@ -4,6 +4,7 @@ import (
 	"github.com/chong3916/todo-app/backend/api/handlers"
 	"github.com/chong3916/todo-app/backend/api/middleware"
 	"github.com/chong3916/todo-app/backend/api/services"
+	"github.com/chong3916/todo-app/backend/api/websocket"
 	"github.com/chong3916/todo-app/backend/shared/db"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/cors"
@@ -16,6 +17,9 @@ func main() {
 	db.RunMigrations(dbURL)
 	pool := db.InitPool(dbURL)
 	defer pool.Close()
+
+	hub := websocket.NewHub()
+	go hub.Run()
 
 	userRepo := db.NewUserRepository(pool)
 	boardRepo := db.NewBoardRepository(pool)
@@ -31,10 +35,9 @@ func main() {
 
 	userHandler := handlers.NewUserHandler(userService)
 	boardHandler := handlers.NewBoardHandler(boardService)
-	ticketHandler := handlers.NewTicketHandler(ticketService)
+	ticketHandler := handlers.NewTicketHandler(ticketService, hub)
 	invitationHandler := handlers.NewInvitationHandler(invitationService)
-
-	wsHandler := handlers.NewWorkspaceHandler(wsService, invitationService)
+	wsHandler := handlers.NewWorkspaceHandler(wsService, invitationService, hub)
 
 	r := gin.Default()
 	r.Use(middleware.ErrorLogger())
@@ -64,6 +67,11 @@ func main() {
 
 		protected.POST("/invites/accept", invitationHandler.AcceptInvite)
 		protected.GET("/invites/pending", invitationHandler.GetMyInvites)
+
+		protected.GET("/me", userHandler.GetMe)
+		protected.GET("/ws", func(c *gin.Context) {
+			websocket.ServeWs(hub, c.Writer, c.Request)
+		})
 
 		ws := protected.Group("/workspaces/:id")
 		{

@@ -37,7 +37,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 
             const data = await response.json();
             if (response.ok && data.token) {
-                login(data.token);
+                login(data.token, data.user);
                 toast.success("Welcome back!");
                 navigate("/dashboard");
             } else {

@@ -50,7 +50,7 @@ export const BoardColumn = ({ id, columnId, title, statusKey, tickets, canCreate
             <div
                 ref={setNodeRef}
                 style={style}
-                className="flex flex-col rounded-lg p-4 w-full min-h-[600px] border-2 border-indigo-200 bg-indigo-50/50 opacity-50"
+                className="flex flex-col rounded-lg p-4 w-full min-w-[300px] min-h-[600px] border-2 border-dashed border-indigo-300 bg-indigo-50/30"
             />
         );
     }

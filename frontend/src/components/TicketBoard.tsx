@@ -40,6 +40,7 @@ export const TicketBoard = () => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [activeStatus, setActiveStatus] = useState<string | undefined>();
     const [activeTicket, setActiveTicket] = useState<any | null>(null);
+    const [activeColumn, setActiveColumn] = useState<any | null>(null);
 
     const [viewingTicketId, setViewingTicketId] = useState<string | null>(null);
 
@@ -59,6 +60,13 @@ export const TicketBoard = () => {
     const handleDragStart = (event: DragStartEvent) => {
         if (!canEdit) return;
         const { active } = event;
+
+        if (active.data.current?.type === 'Column') {
+            const col = board.columns.find((c: any) => c.id === active.id);
+            setActiveColumn(col);
+            return;
+        }
+
         const ticket = tickets?.find((t: any) => t.id === active.id);
         setActiveTicket(ticket);
     };
@@ -66,6 +74,7 @@ export const TicketBoard = () => {
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
         setActiveTicket(null);
+        setActiveColumn(null);
 
         if (!over || !canEdit) return;
 
@@ -293,6 +302,24 @@ export const TicketBoard = () => {
                         <TicketCard ticket={activeTicket} />
                     </div>
                 ) : null}
+
+                {activeColumn && (
+                    <div className="rotate-2 scale-[1.02] opacity-90 shadow-2xl transition-transform">
+                        <BoardColumn
+                            id={activeColumn.status_key}
+                            columnId={activeColumn.id}
+                            title={activeColumn.name}
+                            statusKey={activeColumn.status_key}
+                            tickets={tickets?.filter((t: any) => t.status === activeColumn.status_key) || []}
+                            canCreate={false} // Disable interactions inside the overlay
+                            isAdmin={false}
+                            onCreateTicket={() => {}}
+                            onTicketClick={() => {}}
+                            onRemoveColumn={() => {}}
+                            onRenameColumn={() => {}}
+                        />
+                    </div>
+                )}
             </DragOverlay>
 
             <CreateTicketDrawer

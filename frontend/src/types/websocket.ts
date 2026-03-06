@@ -3,6 +3,7 @@ export enum WSEventType {
     TicketCreated = 'TICKET_CREATED',
     TicketUpdated = 'TICKET_UPDATED',
     TicketDeleted = 'TICKET_DELETED',
+    BoardColumnAdded = 'COLUMN_ADDED',
 }
 
 export interface WSEvent<T = any> {

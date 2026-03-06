@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"encoding/json"
 	"github.com/chong3916/todo-app/backend/api/services"
+	"github.com/chong3916/todo-app/backend/api/websocket"
+	"github.com/chong3916/todo-app/backend/shared/models"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"net/http"
@@ -9,10 +12,11 @@ import (
 
 type BoardHandler struct {
 	Service *services.BoardService
+	hub     *websocket.Hub
 }
 
-func NewBoardHandler(svc *services.BoardService) *BoardHandler {
-	return &BoardHandler{Service: svc}
+func NewBoardHandler(svc *services.BoardService, h *websocket.Hub) *BoardHandler {
+	return &BoardHandler{Service: svc, hub: h}
 }
 
 func (h *BoardHandler) GetWorkspaceBoard(c *gin.Context) {
@@ -49,6 +53,13 @@ func (h *BoardHandler) AddColumn(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	payloadBytes, _ := json.Marshal(column)
+	h.hub.Broadcast <- models.WSEvent{
+		Type:        "COLUMN_ADDED",
+		WorkspaceID: wsID.String(),
+		Payload:     json.RawMessage(payloadBytes),
 	}
 
 	c.JSON(http.StatusCreated, column)

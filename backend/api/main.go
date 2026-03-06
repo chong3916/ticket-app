@@ -34,7 +34,7 @@ func main() {
 	invitationService := services.NewInvitationService(invitationRepo, wsRepo, userRepo)
 
 	userHandler := handlers.NewUserHandler(userService)
-	boardHandler := handlers.NewBoardHandler(boardService)
+	boardHandler := handlers.NewBoardHandler(boardService, hub)
 	ticketHandler := handlers.NewTicketHandler(ticketService, hub)
 	invitationHandler := handlers.NewInvitationHandler(invitationService)
 	wsHandler := handlers.NewWorkspaceHandler(wsService, invitationService, hub)

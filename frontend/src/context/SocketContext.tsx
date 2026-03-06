@@ -84,6 +84,15 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     return oldTickets.filter(t => t.id !== payload.ticket_id);
                 });
                 break;
+            case WSEventType.BoardColumnAdded:
+                queryClient.setQueryData(['board', eventWsId], (oldBoard: any) => {
+                    if (!oldBoard) return oldBoard;
+                    return {
+                        ...oldBoard,
+                        columns: [...oldBoard.columns, payload]
+                    };
+                });
+                break;
             default:
                 // Fallback
                 queryClient.invalidateQueries({ queryKey: ['tickets', eventWsId] });

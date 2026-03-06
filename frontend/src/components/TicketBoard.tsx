@@ -271,6 +271,7 @@ export const TicketBoard = () => {
                                 title={col.name}
                                 statusKey={col.status_key}
                                 tickets={tickets?.filter((t: any) => t.status === col.status_key) || []}
+                                members={members}
                                 canCreate={canEdit}
                                 isAdmin={isAdmin}
                                 onCreateTicket={handleCreateClick}
@@ -303,7 +304,8 @@ export const TicketBoard = () => {
             }}>
                 {activeTicket ? (
                     <div className="rotate-3 scale-105 transition-transform">
-                        <TicketCard ticket={activeTicket} />
+                        <TicketCard ticket={activeTicket}
+                                    assignee={members?.find((m: any) => m.id === activeTicket.assignee_id)} />
                     </div>
                 ) : null}
 
@@ -315,7 +317,8 @@ export const TicketBoard = () => {
                             title={activeColumn.name}
                             statusKey={activeColumn.status_key}
                             tickets={tickets?.filter((t: any) => t.status === activeColumn.status_key) || []}
-                            canCreate={false} // Disable interactions inside the overlay
+                            members={members}
+                            canCreate={false}
                             isAdmin={false}
                             onCreateTicket={() => {}}
                             onTicketClick={() => {}}

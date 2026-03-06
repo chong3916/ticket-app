@@ -3,7 +3,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { Ticket } from "@/types/ticket.ts";
 import { TicketCard } from "@/components/TicketCard.tsx";
 
-export const SortableTicket = ({ ticket, isDraggable, onClick }: { ticket: Ticket, isDraggable: boolean, onClick: () => void }) => {
+export const SortableTicket = ({ ticket, assignee, isDraggable, onClick }: { ticket: Ticket, assignee: any, isDraggable: boolean, onClick: () => void }) => {
     const {
         attributes,
         listeners,
@@ -23,7 +23,7 @@ export const SortableTicket = ({ ticket, isDraggable, onClick }: { ticket: Ticke
 
     return (
         <div ref={setNodeRef} style={style} {...attributes} {...listeners} onClick={onClick}>
-            <TicketCard ticket={ticket} isDraggable={isDraggable} />
+            <TicketCard ticket={ticket} assignee={assignee} isDraggable={isDraggable} />
         </div>
     );
 };

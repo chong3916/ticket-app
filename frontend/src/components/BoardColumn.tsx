@@ -13,6 +13,7 @@ interface BoardColumnProps {
     title: string;
     statusKey: string;
     tickets: Ticket[];
+    members: any[];
     canCreate: boolean;
     isAdmin: boolean;
     onCreateTicket: (status: string) => void;
@@ -21,7 +22,7 @@ interface BoardColumnProps {
     onRenameColumn: (columnId: string, newName: string) => void;
 }
 
-export const BoardColumn = ({ id, columnId, title, statusKey, tickets, canCreate, isAdmin, onCreateTicket, onTicketClick, onRemoveColumn, onRenameColumn }: BoardColumnProps) => {
+export const BoardColumn = ({ id, columnId, title, statusKey, tickets, members, canCreate, isAdmin, onCreateTicket, onTicketClick, onRemoveColumn, onRenameColumn }: BoardColumnProps) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState(title);
 
@@ -115,9 +116,14 @@ export const BoardColumn = ({ id, columnId, title, statusKey, tickets, canCreate
             <SortableContext id={id} items={tickets.map(t => t.id)} strategy={verticalListSortingStrategy}>
                 <div className="space-y-4 flex-1">
                     {tickets.length > 0 ? (
-                        tickets.map((ticket: Ticket) => (
-                            <SortableTicket key={ticket.id} ticket={ticket} isDraggable={canCreate} onClick={() => onTicketClick(ticket)} />
-                        ))
+                        tickets.map((ticket: Ticket) => {
+                            const assignee = members?.find(m => m.id === ticket.assignee_id);
+
+                            return (
+                                <SortableTicket key={ ticket.id } ticket={ ticket } assignee={ assignee } isDraggable={ canCreate }
+                                                onClick={ () => onTicketClick(ticket) }/>
+                            )
+                        })
                     ) : (
                         <div className="h-24 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400 text-xs italic">
                             No tickets in {title}

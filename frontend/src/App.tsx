@@ -7,6 +7,7 @@ import { WorkspaceLayout } from "@/components/WorkspaceLayout.tsx";
 import { TicketBoard } from "@/components/TicketBoard.tsx";
 import { MembersPage } from "@/containers/MembersPage.tsx";
 import { WorkspacesPage } from "@/containers/WorkspacesPage.tsx";
+import { WorkspaceSettingsPage } from "@/containers/WorkspaceSettingsPage.tsx";
 
 const DashboardRedirect = () => {
     return <Navigate to="/workspaces" replace />;
@@ -32,7 +33,7 @@ function App() {
                         <Route index element={<Navigate to="board" replace />} />
                         <Route path="board" element={<TicketBoard />} />
                         <Route path="members" element={<MembersPage />} />
-                        {/*<Route path="settings" element={<SettingsPage />} />*/}
+                        <Route path="settings" element={<WorkspaceSettingsPage />} />
                     </Route>
                 </Route>
 

@@ -21,16 +21,20 @@ func main() {
 	boardRepo := db.NewBoardRepository(pool)
 	wsRepo := db.NewWorkspaceRepository(pool)
 	ticketRepo := db.NewTicketRepository(pool)
+	invitationRepo := db.NewInvitationRepository(pool)
 
 	userService := services.NewUserService(userRepo)
 	boardService := services.NewBoardService(boardRepo)
 	wsService := services.NewWorkspaceService(wsRepo, boardService)
 	ticketService := services.NewTicketService(ticketRepo, wsRepo, boardRepo)
+	invitationService := services.NewInvitationService(invitationRepo, wsRepo, userRepo)
 
 	userHandler := handlers.NewUserHandler(userService)
 	boardHandler := handlers.NewBoardHandler(boardService)
-	wsHandler := handlers.NewWorkspaceHandler(wsService)
 	ticketHandler := handlers.NewTicketHandler(ticketService)
+	invitationHandler := handlers.NewInvitationHandler(invitationService)
+
+	wsHandler := handlers.NewWorkspaceHandler(wsService, invitationService)
 
 	r := gin.Default()
 	r.Use(middleware.ErrorLogger())
@@ -46,26 +50,40 @@ func main() {
 		c.HandlerFunc(ctx.Writer, ctx.Request)
 	})
 
-	r.POST("/register", userHandler.Register)
-	r.POST("/login", userHandler.Login)
-
 	// Protected routes
 	api := r.Group("/api")
-	api.Use(middleware.AuthMiddleware())
 	{
-		api.GET("/tickets", ticketHandler.GetCreatorTicket)
-		api.POST("/tickets", ticketHandler.CreateTicket)
-		api.PATCH("/tickets/:id", ticketHandler.UpdateTicket)
-		api.DELETE("/tickets/:id", ticketHandler.DeleteTicket)
+		api.POST("/register", userHandler.Register)
+		api.POST("/login", userHandler.Login)
+	}
 
-		api.GET("/workspaces/:id/tickets", ticketHandler.GetWorkspaceTickets)
+	protected := r.Group("/api", middleware.AuthMiddleware())
+	{
+		protected.POST("/workspaces", wsHandler.CreateWorkspace)
+		protected.GET("/workspaces", wsHandler.GetUserWorkspaces)
 
-		api.POST("/workspaces", wsHandler.CreateWorkspace)
-		api.GET("/workspaces", wsHandler.GetUserWorkspaces)
-		api.GET("/workspaces/:id/members", wsHandler.GetWorkspaceMembers)
-		api.POST("/workspaces/:id/invite", wsHandler.InviteMember)
-		api.GET("/workspaces/:id/board", boardHandler.GetWorkspaceBoard)
-		api.POST("/workspaces/:id/board/columns", boardHandler.AddColumn)
+		protected.POST("/invites/accept", invitationHandler.AcceptInvite)
+		protected.GET("/invites/pending", invitationHandler.GetMyInvites)
+
+		ws := protected.Group("/workspaces/:id")
+		{
+			ws.GET("/tickets", middleware.RequireRole(wsRepo, "admin", "member", "viewer"), ticketHandler.GetWorkspaceTickets)
+			ws.POST("/tickets", middleware.RequireRole(wsRepo, "admin", "member"), ticketHandler.CreateTicket)
+			ws.PATCH("/tickets/:ticket_id", middleware.RequireRole(wsRepo, "admin", "member"), ticketHandler.UpdateTicket)
+			ws.DELETE("/tickets/:ticket_id", middleware.RequireRole(wsRepo, "admin", "member"), ticketHandler.DeleteTicket)
+
+			ws.GET("/members", middleware.RequireRole(wsRepo, "admin", "member", "viewer"), wsHandler.GetWorkspaceMembers)
+			ws.PATCH("/members/:member_id/role", middleware.RequireRole(wsRepo, "admin"), wsHandler.UpdateMemberRole)
+			ws.DELETE("/members/:member_id", middleware.RequireRole(wsRepo, "admin"), wsHandler.RemoveMember)
+
+			ws.PATCH("", middleware.RequireRole(wsRepo, "admin"), wsHandler.UpdateWorkspaceName)
+			ws.DELETE("", middleware.RequireRole(wsRepo, "admin"), wsHandler.DeleteWorkspace)
+
+			ws.POST("/leave", wsHandler.LeaveWorkspace)
+			ws.POST("/invite", middleware.RequireRole(wsRepo, "admin"), wsHandler.InviteMember)
+			ws.GET("/board", middleware.RequireRole(wsRepo, "admin", "member", "viewer"), boardHandler.GetWorkspaceBoard)
+			ws.POST("/board/columns", middleware.RequireRole(wsRepo, "admin"), boardHandler.AddColumn)
+		}
 	}
 
 	log.Println("Server starting on :8080")

@@ -26,6 +26,8 @@ import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers.ts";
 
 export const TicketBoard = () => {
     const { currentWorkspace } = useWorkspace();
+    const isAdmin = currentWorkspace?.role === 'admin';
+    const canEdit = currentWorkspace?.role === 'admin' || currentWorkspace?.role === 'member';
 
     const { data: board, isLoading: boardLoading } = useWorkspaceBoard();
     const { data: tickets, isLoading: ticketsLoading } = useWorkspaceTickets();
@@ -54,12 +56,18 @@ export const TicketBoard = () => {
     };
 
     const handleDragStart = (event: DragStartEvent) => {
+        if (!canEdit) return;
         const { active } = event;
         const ticket = tickets?.find((t: any) => t.id === active.id);
         setActiveTicket(ticket);
     };
 
     const handleDragEnd = async (event: DragEndEvent) => {
+        if (!canEdit) {
+            setActiveTicket(null);
+            return;
+        }
+
         const { active, over } = event;
         setActiveTicket(null);
 
@@ -81,7 +89,7 @@ export const TicketBoard = () => {
         });
 
         try {
-            const res = await secureFetch(`/api/tickets/${ticketId}`, {
+            const res = await secureFetch(`/api/workspaces/${currentWorkspace?.id}/tickets/${ticketId}`, {
                 method: 'PATCH',
                 body: JSON.stringify({ status: newStatus }),
             });
@@ -126,7 +134,11 @@ export const TicketBoard = () => {
         return (
             <div className="p-8 text-center border-2 border-dashed rounded-lg">
                 <p className="text-muted-foreground mb-4">No board configuration found for this workspace.</p>
-                <AddColumnButton onAdd={handleAddColumn} />
+                {isAdmin ? (
+                    <AddColumnButton onAdd={handleAddColumn} />
+                ) : (
+                    <p className="text-sm italic">Only an administrator can set up the board.</p>
+                )}
             </div>
         );
     }
@@ -147,11 +159,12 @@ export const TicketBoard = () => {
                             title={col.name}
                             statusKey={col.status_key}
                             tickets={tickets?.filter((t: any) => t.status === col.status_key) || []}
+                            canCreate={canEdit}
                             onCreateTicket={handleCreateClick}
                             onTicketClick={(ticket) => setViewingTicketId(ticket.id)}
                         />
                     ))}
-                    <AddColumnButton onAdd={handleAddColumn} />
+                    {isAdmin && <AddColumnButton onAdd={handleAddColumn} />}
                 </div>
             </div>
 

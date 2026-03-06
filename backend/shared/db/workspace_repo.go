@@ -53,6 +53,9 @@ func (r *WorkspaceRepository) CreateWorkspaceWithMember(ctx context.Context, nam
 		return models.Workspace{}, err
 	}
 
+	ws.UserID = userID
+	ws.Role = "admin"
+
 	// Commit both
 	if err := tx.Commit(ctx); err != nil {
 		return models.Workspace{}, err
@@ -76,7 +79,7 @@ func (r *WorkspaceRepository) GetUserWorkspaces(ctx context.Context, userID uuid
 	workspaces := []models.Workspace{}
 
 	query := `
-       SELECT w.id, w.name, w.created_at, w.updated_at 
+       SELECT w.id, w.name, wm.role, wm.user_id, w.created_at, w.updated_at 
        FROM workspaces w
        JOIN workspace_members wm ON w.id = wm.workspace_id
        WHERE wm.user_id = $1
@@ -91,7 +94,7 @@ func (r *WorkspaceRepository) GetUserWorkspaces(ctx context.Context, userID uuid
 
 	for rows.Next() {
 		var w models.Workspace
-		err := rows.Scan(&w.ID, &w.Name, &w.CreatedAt, &w.UpdatedAt)
+		err := rows.Scan(&w.ID, &w.Name, &w.Role, &w.UserID, &w.CreatedAt, &w.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -101,15 +104,15 @@ func (r *WorkspaceRepository) GetUserWorkspaces(ctx context.Context, userID uuid
 	return workspaces, nil
 }
 
-func (r *WorkspaceRepository) GetWorkspaceMembers(ctx context.Context, workspaceID uuid.UUID) ([]models.User, error) {
-	members := []models.User{}
+func (r *WorkspaceRepository) GetWorkspaceMembers(ctx context.Context, workspaceID uuid.UUID) ([]models.WorkspaceMember, error) {
+	members := []models.WorkspaceMember{}
 
 	query := `
-       SELECT u.id, u.email, u.username, u.created_at
+       SELECT u.id, u.email, u.username, wm.role, wm.joined_at
        FROM users u
        JOIN workspace_members wm ON u.id = wm.user_id
        WHERE wm.workspace_id = $1
-       ORDER BY u.username ASC
+       ORDER BY CASE WHEN wm.role = 'admin' THEN 1 WHEN wm.role = 'member' THEN 2 ELSE 3 END, u.username ASC
     `
 
 	rows, err := r.db.Query(ctx, query, workspaceID)
@@ -119,8 +122,8 @@ func (r *WorkspaceRepository) GetWorkspaceMembers(ctx context.Context, workspace
 	defer rows.Close()
 
 	for rows.Next() {
-		var u models.User
-		err := rows.Scan(&u.ID, &u.Email, &u.Username, &u.CreatedAt)
+		var u models.WorkspaceMember
+		err := rows.Scan(&u.ID, &u.Email, &u.Username, &u.Role, &u.JoinedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -144,6 +147,16 @@ func (r *WorkspaceRepository) AddMemberByEmail(ctx context.Context, workspaceID 
         ON CONFLICT (workspace_id, user_id) DO NOTHING
     `
 	_, err = r.db.Exec(ctx, memberQuery, workspaceID, userID, role)
+	return err
+}
+
+func (r *WorkspaceRepository) AddMemberByID(ctx context.Context, workspaceID uuid.UUID, userID uuid.UUID, role string) error {
+	memberQuery := `
+        INSERT INTO workspace_members (workspace_id, user_id, role) 
+        VALUES ($1, $2, $3)
+        ON CONFLICT (workspace_id, user_id) DO NOTHING
+    `
+	_, err := r.db.Exec(ctx, memberQuery, workspaceID, userID, role)
 	return err
 }
 
@@ -178,5 +191,39 @@ func (r *WorkspaceRepository) CreateWorkspaceWithMemberTx(ctx context.Context, t
 	memberQuery := `INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, $3)`
 	_, err = tx.Exec(ctx, memberQuery, ws.ID, userID, "admin")
 
+	ws.UserID = userID
+	ws.Role = "admin"
+
 	return ws, err
+}
+
+func (r *WorkspaceRepository) RemoveMember(ctx context.Context, workspaceID, userID uuid.UUID) error {
+	query := `DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id = $2`
+	_, err := r.db.Exec(ctx, query, workspaceID, userID)
+	return err
+}
+
+func (r *WorkspaceRepository) UpdateMemberRole(ctx context.Context, workspaceID, userID uuid.UUID, role string) error {
+	query := `UPDATE workspace_members SET role = $3 WHERE workspace_id = $1 AND user_id = $2`
+	_, err := r.db.Exec(ctx, query, workspaceID, userID, role)
+	return err
+}
+
+func (r *WorkspaceRepository) GetAdminCount(ctx context.Context, workspaceID uuid.UUID) (int, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM workspace_members WHERE workspace_id = $1 AND role = 'admin'`
+	err := r.db.QueryRow(ctx, query, workspaceID).Scan(&count)
+	return count, err
+}
+
+func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, workspaceID uuid.UUID) error {
+	query := `DELETE FROM workspaces WHERE id = $1`
+	_, err := r.db.Exec(ctx, query, workspaceID)
+	return err
+}
+
+func (r *WorkspaceRepository) UpdateWorkspaceName(ctx context.Context, id uuid.UUID, name string) error {
+	query := `UPDATE workspaces SET name = $2, updated_at = NOW() WHERE id = $1`
+	_, err := r.db.Exec(ctx, query, id, name)
+	return err
 }

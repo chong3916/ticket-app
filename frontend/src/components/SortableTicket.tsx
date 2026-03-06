@@ -3,7 +3,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { Ticket } from "@/types/ticket.ts";
 import { TicketCard } from "@/components/TicketCard.tsx";
 
-export const SortableTicket = ({ ticket, onClick }: { ticket: Ticket, onClick: () => void }) => {
+export const SortableTicket = ({ ticket, isDraggable, onClick }: { ticket: Ticket, isDraggable: boolean, onClick: () => void }) => {
     const {
         attributes,
         listeners,
@@ -11,18 +11,19 @@ export const SortableTicket = ({ ticket, onClick }: { ticket: Ticket, onClick: (
         transform,
         transition,
         isDragging
-    } = useSortable({ id: ticket.id });
+    } = useSortable({ id: ticket.id, disabled: !isDraggable });
 
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
         zIndex: isDragging ? 50 : 0,
         opacity: isDragging ? 0.4 : 1,
+        cursor: isDraggable ? 'grab' : 'default'
     };
 
     return (
         <div ref={setNodeRef} style={style} {...attributes} {...listeners} onClick={onClick}>
-            <TicketCard ticket={ticket} />
+            <TicketCard ticket={ticket} isDraggable={isDraggable} />
         </div>
     );
 };

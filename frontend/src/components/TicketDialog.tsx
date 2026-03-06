@@ -18,6 +18,7 @@ import {
 import { InlineInput, InlineTextarea } from "@/components/InlineInput.tsx";
 import { DeleteTicketDialog } from "@/components/DeleteTicketDialog.tsx";
 import { Button } from "@/components/ui/button"
+import { useWorkspace } from "@/context/WorkspaceContext.tsx";
 
 const priorities = ["low", "medium", "high", "urgent"];
 
@@ -32,6 +33,9 @@ const FIELD_DISPLAY_NAMES: Record<string, string> = {
 
 export const TicketDialog = ({ ticket, board, members, open, onOpenChange }: { ticket: any, board?: any, members: any[],  open: boolean; onOpenChange: (open: boolean) => void }) => {
     const { secureFetch } = useApi();
+    const { currentWorkspace } = useWorkspace();
+    const canEdit = currentWorkspace?.role === 'admin' || currentWorkspace?.role === 'member';
+
     const queryClient = useQueryClient();
     const [isUpdating, setIsUpdating] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -52,7 +56,7 @@ export const TicketDialog = ({ ticket, board, members, open, onOpenChange }: { t
 
         setIsUpdating(true);
         try {
-            const res = await secureFetch(`/api/tickets/${ticket.id}`, {
+            const res = await secureFetch(`/api/workspaces/${currentWorkspace?.id}/tickets/${ticket.id}`, {
                 method: "PATCH",
                 body: JSON.stringify({ [field]: value }),
             });
@@ -80,7 +84,7 @@ export const TicketDialog = ({ ticket, board, members, open, onOpenChange }: { t
         onOpenChange(false);
 
         try {
-            const res = await secureFetch(`/api/tickets/${ticket.id}`, {
+            const res = await secureFetch(`/api/workspaces/${currentWorkspace?.id}/tickets/${ticket.id}`, {
                 method: "DELETE",
             });
 
@@ -105,6 +109,7 @@ export const TicketDialog = ({ ticket, board, members, open, onOpenChange }: { t
                         value={ticket.title}
                         onSave={(val) => handleUpdate("title", val)}
                         className="text-xl font-bold"
+                        disabled={!canEdit}
                     />
                 </DialogHeader>
 
@@ -117,6 +122,7 @@ export const TicketDialog = ({ ticket, board, members, open, onOpenChange }: { t
                         <InlineTextarea
                             value={ticket.description}
                             onSave={(val) => handleUpdate("description", val)}
+                            disabled={!canEdit}
                         />
                     </div>
 
@@ -125,6 +131,7 @@ export const TicketDialog = ({ ticket, board, members, open, onOpenChange }: { t
                         <Select
                             value={ticket.priority}
                             onValueChange={(val) => handleUpdate("priority", val)}
+                            disabled={!canEdit}
                         >
                             <SelectTrigger className="w-[110px] h-7 text-[10px] uppercase font-bold`}">
                                 <SelectValue />
@@ -142,6 +149,7 @@ export const TicketDialog = ({ ticket, board, members, open, onOpenChange }: { t
                         <Select
                             value={ticket.status}
                             onValueChange={(val) => handleUpdate("status", val)}
+                            disabled={!canEdit}
                         >
                             <SelectTrigger className="w-[140px] h-7 text-[10px] uppercase font-bold">
                                 <SelectValue placeholder="Status" />
@@ -166,6 +174,7 @@ export const TicketDialog = ({ ticket, board, members, open, onOpenChange }: { t
                             <Select
                                 value={ticket.assignee_id || "unassigned"}
                                 onValueChange={(val) => handleUpdate("assignee_id", val === "unassigned" ? "" : val)}
+                                disabled={!canEdit}
                             >
                                 <SelectTrigger className="h-8 border-none bg-transparent p-0 hover:bg-slate-50 transition-colors focus:ring-0 text-sm">
                                     <SelectValue placeholder="Unassigned" />
@@ -192,7 +201,11 @@ export const TicketDialog = ({ ticket, board, members, open, onOpenChange }: { t
                 </div>
 
                 <div className="flex justify-between items-center border-t pt-4 mt-6">
-                    <DeleteTicketDialog ticket={ticket} handleDelete={handleDelete} />
+                    {canEdit ? (
+                        <DeleteTicketDialog ticket={ticket} handleDelete={handleDelete} />
+                    ) : (
+                        <div />
+                    )}
                     <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
                         Close
                     </Button>

@@ -52,12 +52,7 @@ func (s *WorkspaceService) GetUserWorkspaces(ctx context.Context, userID uuid.UU
 	return s.Repo.GetUserWorkspaces(ctx, userID)
 }
 
-func (s *WorkspaceService) GetWorkspaceMembers(ctx context.Context, workspaceID uuid.UUID, requestingUserID uuid.UUID) ([]models.User, error) {
-	isMember, err := s.Repo.IsMember(ctx, workspaceID, requestingUserID)
-	if err != nil || !isMember {
-		return nil, errors.New("forbidden: you cannot view members of this workspace")
-	}
-
+func (s *WorkspaceService) GetWorkspaceMembers(ctx context.Context, workspaceID uuid.UUID) ([]models.WorkspaceMember, error) {
 	return s.Repo.GetWorkspaceMembers(ctx, workspaceID)
 }
 
@@ -71,4 +66,62 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, adminI
 
 	// Add the member
 	return s.Repo.AddMemberByEmail(ctx, workspaceID, targetEmail, "member")
+}
+
+func (s *WorkspaceService) RemoveMember(ctx context.Context, workspaceID, userID uuid.UUID) error {
+	role, err := s.Repo.GetUserWorkspaceRole(ctx, workspaceID, userID)
+	if err != nil {
+		return err
+	}
+
+	if role == "admin" {
+		adminCount, err := s.Repo.GetAdminCount(ctx, workspaceID)
+		if err != nil {
+			return err
+		}
+		if adminCount <= 1 {
+			return errors.New("cannot remove the last admin; please promote another member or delete the workspace")
+		}
+	}
+
+	return s.Repo.RemoveMember(ctx, workspaceID, userID)
+}
+
+func (s *WorkspaceService) UpdateMemberRole(ctx context.Context, workspaceID, userID uuid.UUID, role string) error {
+	currentRole, err := s.Repo.GetUserWorkspaceRole(ctx, workspaceID, userID)
+	if err != nil {
+		return err
+	}
+
+	if currentRole == "admin" && role != "admin" {
+		adminCount, err := s.Repo.GetAdminCount(ctx, workspaceID)
+		if err != nil {
+			return err
+		}
+		if adminCount <= 1 {
+			return errors.New("cannot demote the last admin; the workspace must have at least one administrator")
+		}
+	}
+
+	return s.Repo.UpdateMemberRole(ctx, workspaceID, userID, role)
+}
+
+func (s *WorkspaceService) DeleteWorkspace(ctx context.Context, workspaceID, adminID uuid.UUID) error {
+	role, err := s.Repo.GetUserWorkspaceRole(ctx, workspaceID, adminID)
+	if err != nil {
+		return err
+	}
+	if role != "admin" {
+		return errors.New("forbidden: only admins can delete the workspace")
+	}
+
+	return s.Repo.DeleteWorkspace(ctx, workspaceID)
+}
+
+func (s *WorkspaceService) UpdateWorkspaceName(ctx context.Context, workspaceID, adminID uuid.UUID, newName string) error {
+	role, err := s.Repo.GetUserWorkspaceRole(ctx, workspaceID, adminID)
+	if err != nil || role != "admin" {
+		return errors.New("unauthorized: only admins can rename workspaces")
+	}
+	return s.Repo.UpdateWorkspaceName(ctx, workspaceID, newName)
 }

@@ -9,19 +9,29 @@ import (
 )
 
 type WorkspaceHandler struct {
-	Service *services.WorkspaceService
+	Service           *services.WorkspaceService
+	InvitationService *services.InvitationService
 }
 
-func NewWorkspaceHandler(svc *services.WorkspaceService) *WorkspaceHandler {
-	return &WorkspaceHandler{Service: svc}
+func NewWorkspaceHandler(svc *services.WorkspaceService, invitationSvc *services.InvitationService) *WorkspaceHandler {
+	return &WorkspaceHandler{Service: svc, InvitationService: invitationSvc}
 }
 
 type CreateWorkspaceRequest struct {
 	Name string `json:"name" binding:"required,min=3"`
 }
 
+type UpdateWorkspaceNameRequest struct {
+	Name string `json:"name" binding:"required,min=3"`
+}
+
 type InviteMemberRequest struct {
 	Email string `json:"email" binding:"required,email"`
+	Role  string `json:"role" binding:"required,oneof=admin member viewer"`
+}
+
+type UpdateRoleRequest struct {
+	Role string `json:"role" binding:"required,oneof=admin member viewer"`
 }
 
 func (h *WorkspaceHandler) CreateWorkspace(c *gin.Context) {
@@ -95,25 +105,7 @@ func (h *WorkspaceHandler) GetWorkspaceMembers(c *gin.Context) {
 		return
 	}
 
-	val, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
-
-	userIDStr, ok := val.(string)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user context"})
-		return
-	}
-
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user id format"})
-		return
-	}
-
-	members, err := h.Service.GetWorkspaceMembers(c.Request.Context(), workspaceID, userID)
+	members, err := h.Service.GetWorkspaceMembers(c.Request.Context(), workspaceID)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
@@ -150,19 +142,172 @@ func (h *WorkspaceHandler) InviteMember(c *gin.Context) {
 
 	var req InviteMemberRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "valid email required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Valid email and role required"})
 		return
 	}
 
-	err = h.Service.InviteMember(c.Request.Context(), wsID, userID, req.Email)
+	token, err := h.InvitationService.InviteUser(c.Request.Context(), wsID, userID, req.Email, req.Role)
 	if err != nil {
-		if err.Error() == "user with this email does not exist" {
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.JSON(http.StatusOK, gin.H{"message": "Invitation created", "token": token})
+}
+
+func (h *WorkspaceHandler) RemoveMember(c *gin.Context) {
+	wsIDStr := c.Param("id")
+	wsID, err := uuid.Parse(wsIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workspace id"})
+		return
+	}
+
+	memberIDStr := c.Param("member_id")
+	memberID, err := uuid.Parse(memberIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid member id"})
+		return
+	}
+
+	if err := h.Service.RemoveMember(c.Request.Context(), wsID, memberID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove member"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "member removed"})
+}
+
+func (h *WorkspaceHandler) UpdateMemberRole(c *gin.Context) {
+	wsIDStr := c.Param("id")
+	wsID, err := uuid.Parse(wsIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workspace id"})
+		return
+	}
+
+	memberIDStr := c.Param("member_id")
+	memberID, err := uuid.Parse(memberIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid member id"})
+		return
+	}
+
+	var req UpdateRoleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.Service.UpdateMemberRole(c.Request.Context(), wsID, memberID, req.Role); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update role"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "role updated"})
+}
+
+func (h *WorkspaceHandler) LeaveWorkspace(c *gin.Context) {
+	wsIDStr := c.Param("id")
+	wsID, err := uuid.Parse(wsIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workspace id"})
+		return
+	}
+
+	val, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userIDStr, ok := val.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user context"})
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user id format"})
+		return
+	}
+
+	if err := h.Service.RemoveMember(c.Request.Context(), wsID, userID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "successfully left workspace"})
+}
+
+func (h *WorkspaceHandler) DeleteWorkspace(c *gin.Context) {
+	wsIDStr := c.Param("id")
+	wsID, err := uuid.Parse(wsIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workspace id"})
+		return
+	}
+
+	val, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userIDStr, ok := val.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user context"})
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user id format"})
+		return
+	}
+
+	if err := h.Service.DeleteWorkspace(c.Request.Context(), wsID, userID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "workspace deleted successfully"})
+}
+
+func (h *WorkspaceHandler) UpdateWorkspaceName(c *gin.Context) {
+	wsIDStr := c.Param("id")
+	wsID, err := uuid.Parse(wsIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workspace id"})
+		return
+	}
+
+	val, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userIDStr, ok := val.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user context"})
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user id format"})
+		return
+	}
+
+	var req UpdateWorkspaceNameRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.Service.UpdateWorkspaceName(c.Request.Context(), wsID, userID, req.Name); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "workspace updated successfully"})
 }

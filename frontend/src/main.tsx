@@ -3,7 +3,7 @@ import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from "./context/AuthContext.tsx";
 import { BrowserRouter } from "react-router-dom";
-import { WorkspaceProvider } from "@/context/WorkspaceContext.tsx";
+import { WorkspaceProvider } from "@/context/WorkspaceProvider.tsx";
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 

@@ -63,7 +63,7 @@ const CreateTicketForm = ({ onSuccess, defaultStatus }: { onSuccess: () => void,
             tags: []
         };
 
-        const res = await secureFetch('/api/tickets', {
+        const res = await secureFetch(`/api/workspaces/${currentWorkspace?.id}/tickets`, {
             method: 'POST',
             body: JSON.stringify(payload),
         });

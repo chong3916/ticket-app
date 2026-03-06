@@ -122,7 +122,7 @@ func (h *TicketHandler) GetCreatorTicket(c *gin.Context) {
 }
 
 func (h *TicketHandler) UpdateTicket(c *gin.Context) {
-	idParam := c.Param("id")
+	idParam := c.Param("ticket_id")
 	ticketID, err := uuid.Parse(idParam)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ticket id"})
@@ -249,7 +249,7 @@ func (h *TicketHandler) DeleteTicket(c *gin.Context) {
 		return
 	}
 
-	idParam := c.Param("id")
+	idParam := c.Param("ticket_id")
 	ticketID, err := uuid.Parse(idParam)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ticket id"})

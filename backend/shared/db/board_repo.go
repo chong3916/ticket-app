@@ -110,8 +110,89 @@ func (r *BoardRepository) AddColumn(ctx context.Context, boardID uuid.UUID, name
 }
 
 func (r *BoardRepository) RemoveColumn(ctx context.Context, boardID uuid.UUID, statusKey string) error {
-	query := `DELETE FROM board_columns WHERE board_id = $1 AND status_key = $2`
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
 
-	_, err := r.db.Exec(ctx, query, boardID, statusKey)
-	return err
+	ticketDeleteQuery := `
+        DELETE FROM tickets 
+        WHERE status = $1 
+        AND workspace_id = (SELECT workspace_id FROM boards WHERE id = $2)
+    `
+	_, err = tx.Exec(ctx, ticketDeleteQuery, statusKey, boardID)
+	if err != nil {
+		return fmt.Errorf("failed to delete associated tickets: %w", err)
+	}
+
+	columnDeleteQuery := `
+        DELETE FROM board_columns 
+        WHERE status_key = $1 AND board_id = $2
+    `
+	result, err := tx.Exec(ctx, columnDeleteQuery, statusKey, boardID)
+	if err != nil {
+		return fmt.Errorf("failed to delete board column: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("no column found with status_key %s for board %s", statusKey, boardID)
+	}
+
+	return tx.Commit(ctx)
+}
+
+func (r *BoardRepository) UpdateColumn(ctx context.Context, columnID uuid.UUID, updates map[string]interface{}) error {
+	if len(updates) == 0 {
+		return nil
+	}
+
+	query := `UPDATE board_columns SET `
+	args := []interface{}{}
+	i := 1
+
+	for key, val := range updates {
+		query += fmt.Sprintf("%s = $%d, ", key, i)
+		args = append(args, val)
+		i++
+	}
+
+	query = query[:len(query)-2] + fmt.Sprintf(" WHERE id = $%d", i)
+	args = append(args, columnID)
+
+	result, err := r.db.Exec(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("no column found with ID %s", columnID)
+	}
+
+	return nil
+}
+
+func (r *BoardRepository) ReorderColumns(ctx context.Context, boardID uuid.UUID, columnPositions map[uuid.UUID]int) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	for id, pos := range columnPositions {
+		tempPos := -(pos + 1)
+		_, err := tx.Exec(ctx, `UPDATE board_columns SET position = $1 WHERE id = $2 AND board_id = $3`, tempPos, id, boardID)
+		if err != nil {
+			return err
+		}
+	}
+
+	for id, pos := range columnPositions {
+		_, err := tx.Exec(ctx, `UPDATE board_columns SET position = $1 WHERE id = $2 AND board_id = $3`, pos, id, boardID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
 }

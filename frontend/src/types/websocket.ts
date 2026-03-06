@@ -4,7 +4,9 @@ export enum WSEventType {
     TicketUpdated = 'TICKET_UPDATED',
     TicketDeleted = 'TICKET_DELETED',
     BoardColumnAdded = 'COLUMN_ADDED',
-    BoardColumnDeleted = 'COLUMN_REMOVED'
+    BoardColumnDeleted = 'COLUMN_REMOVED',
+    BoardColumnUpdated = 'COLUMN_UPDATED',
+    BoardColumnsReordered = 'COLUMNS_REORDERED',
 }
 
 export interface WSEvent<T = any> {

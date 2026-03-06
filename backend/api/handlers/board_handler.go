@@ -93,3 +93,59 @@ func (h *BoardHandler) RemoveColumn(c *gin.Context) {
 
 	c.Status(http.StatusNoContent)
 }
+
+func (h *BoardHandler) UpdateColumn(c *gin.Context) {
+	wsID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workspace id"})
+		return
+	}
+	colID, _ := uuid.Parse(c.Param("column_id"))
+
+	var req struct {
+		Name       *string     `json:"name"`
+		OrderedIDs []uuid.UUID `json:"ordered_ids"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Reorder columns
+	if req.OrderedIDs != nil {
+		err := h.Service.ReorderColumns(c.Request.Context(), wsID, req.OrderedIDs)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		payloadBytes, _ := json.Marshal(req.OrderedIDs)
+		h.hub.Broadcast <- models.WSEvent{
+			Type:        "COLUMNS_REORDERED",
+			WorkspaceID: wsID.String(),
+			Payload:     json.RawMessage(payloadBytes),
+		}
+		c.Status(http.StatusNoContent)
+		return
+	}
+
+	// Rename columns
+	if req.Name != nil {
+		updates := map[string]interface{}{"name": *req.Name}
+		err := h.Service.UpdateColumn(c.Request.Context(), colID, updates)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		payloadBytes, _ := json.Marshal(gin.H{"id": colID, "name": *req.Name})
+		h.hub.Broadcast <- models.WSEvent{
+			Type:        "COLUMN_UPDATED",
+			WorkspaceID: wsID.String(),
+			Payload:     json.RawMessage(payloadBytes),
+		}
+	}
+
+	c.Status(http.StatusNoContent)
+}

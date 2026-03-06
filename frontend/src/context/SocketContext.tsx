@@ -103,6 +103,33 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 });
                 queryClient.invalidateQueries({ queryKey: ['tickets', eventWsId]});
                 break;
+            case WSEventType.BoardColumnUpdated:
+                queryClient.setQueryData(['board', eventWsId], (oldBoard: any) => {
+                    if (!oldBoard) return oldBoard;
+                    return {
+                        ...oldBoard,
+                        columns: oldBoard.columns.map((col: any) =>
+                            col.id === payload.id ? { ...col, name: payload.name } : col
+                        )
+                    };
+                });
+                break;
+            case WSEventType.BoardColumnsReordered:
+                queryClient.setQueryData(['board', eventWsId], (oldBoard: any) => {
+                    if (!oldBoard || !payload) return oldBoard;
+
+                    const orderedIds = payload as string[];
+
+                    const newColumns = [...oldBoard.columns].sort((a, b) => {
+                        return orderedIds.indexOf(a.id) - orderedIds.indexOf(b.id);
+                    });
+
+                    return {
+                        ...oldBoard,
+                        columns: newColumns
+                    };
+                });
+                break;
             default:
                 // Fallback
                 queryClient.invalidateQueries({ queryKey: ['tickets', eventWsId] });

@@ -23,6 +23,7 @@ import {
 import { TicketDialog } from "./TicketDialog.tsx";
 import { TicketCard } from "@/components/TicketCard.tsx";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers.ts";
+import { arrayMove, horizontalListSortingStrategy, SortableContext } from "@dnd-kit/sortable";
 
 export const TicketBoard = () => {
     const { currentWorkspace } = useWorkspace();
@@ -63,18 +64,56 @@ export const TicketBoard = () => {
     };
 
     const handleDragEnd = async (event: DragEndEvent) => {
-        if (!canEdit) {
-            setActiveTicket(null);
-            return;
-        }
-
         const { active, over } = event;
         setActiveTicket(null);
 
-        if (!over) return;
+        if (!over || !canEdit) return;
+
+        if (active.data.current?.type === 'Column') {
+            const activeColumnId = active.id;
+            const overColumnId = over.id;
+
+            const oldIndex = board.columns.findIndex((col: any) => col.id === activeColumnId);
+            let newIndex = board.columns.findIndex((col: any) => col.id === overColumnId);
+
+            if (newIndex === -1) {
+                const overTicket = tickets?.find((t: any) => t.id === overColumnId);
+                if (overTicket) {
+                    newIndex = board.columns.findIndex((col: any) => col.status_key === overTicket.status);
+                }
+            }
+
+            if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+                const newOrder = arrayMove(board.columns, oldIndex, newIndex);
+
+                queryClient.setQueryData(['board', currentWorkspace.id], { ...board, columns: newOrder });
+
+                try {
+                    await secureFetch(`/api/workspaces/${currentWorkspace.id}/board/columns`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ ordered_ids: newOrder.map((c: any) => c.id) })
+                    });
+                    toast.success("Board reordered");
+                } catch (err) {
+                    queryClient.invalidateQueries({ queryKey: ['board', currentWorkspace.id] });
+                    toast.error("Failed to save board order");
+                }
+            }
+            return;
+        }
 
         const ticketId = active.id as string;
-        const newStatus = over.id as string;
+        let newStatus = over.id as string;
+
+        const overTicket = tickets?.find((t: any) => t.id === over.id);
+        if (overTicket) {
+            newStatus = overTicket.status;
+        } else {
+            const overColumn = board.columns.find((col: any) => col.id === over.id);
+            if (overColumn) {
+                newStatus = overColumn.status_key;
+            }
+        }
 
         const queryKey = ['tickets', currentWorkspace?.id];
 
@@ -104,6 +143,10 @@ export const TicketBoard = () => {
     };
 
     const collisionDetectionStrategy = (args: any) => {
+        if (activeTicket === null && args.active.data.current?.type === 'Column') {
+            return rectIntersection(args);
+        }
+
         const pointerCollisions = pointerWithin(args);
         if (pointerCollisions.length > 0) return pointerCollisions;
 
@@ -157,6 +200,31 @@ export const TicketBoard = () => {
         }
     };
 
+    const handleRenameColumn = async (columnId: string, newName: string) => {
+        const boardKey = ['board', currentWorkspace?.id];
+        const previousBoard = queryClient.getQueryData(boardKey);
+
+        queryClient.setQueryData(boardKey, (old: any) => ({
+            ...old,
+            columns: old.columns.map((col: any) =>
+                col.id === columnId ? { ...col, name: newName } : col
+            )
+        }));
+
+        try {
+            const res = await secureFetch(`/api/workspaces/${currentWorkspace?.id}/board/columns/${columnId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ name: newName }),
+            });
+
+            if (!res.ok) throw new Error();
+            toast.success("Column renamed");
+        } catch (err) {
+            queryClient.setQueryData(boardKey, previousBoard);
+            toast.error("Failed to rename column");
+        }
+    };
+
     if (!currentWorkspace) return <div className="p-8 text-center text-muted-foreground">Select a workspace to view the board.</div>;
     if (boardLoading || ticketsLoading) return <div>Loading...</div>;
 
@@ -182,20 +250,27 @@ export const TicketBoard = () => {
         >
             <div className="w-full overflow-x-auto pb-4">
                 <div className="flex gap-4 min-w-[900px]">
-                    {board?.columns?.map((col: any) => (
-                        <BoardColumn
-                            key={col.id}
-                            id={col.status_key}
-                            title={col.name}
-                            statusKey={col.status_key}
-                            tickets={tickets?.filter((t: any) => t.status === col.status_key) || []}
-                            canCreate={canEdit}
-                            isAdmin={isAdmin}
-                            onCreateTicket={handleCreateClick}
-                            onTicketClick={(ticket) => setViewingTicketId(ticket.id)}
-                            onRemoveColumn={handleRemoveColumn}
-                        />
-                    ))}
+                    <SortableContext
+                        items={board.columns.map((col: any) => col.id)}
+                        strategy={horizontalListSortingStrategy}
+                    >
+                        {board?.columns?.map((col: any) => (
+                            <BoardColumn
+                                key={col.id}
+                                id={col.status_key}
+                                columnId={col.id}
+                                title={col.name}
+                                statusKey={col.status_key}
+                                tickets={tickets?.filter((t: any) => t.status === col.status_key) || []}
+                                canCreate={canEdit}
+                                isAdmin={isAdmin}
+                                onCreateTicket={handleCreateClick}
+                                onTicketClick={(ticket) => setViewingTicketId(ticket.id)}
+                                onRemoveColumn={handleRemoveColumn}
+                                onRenameColumn={handleRenameColumn}
+                            />
+                        ))}
+                    </SortableContext>
                     {isAdmin && <AddColumnButton onAdd={handleAddColumn} />}
                 </div>
             </div>

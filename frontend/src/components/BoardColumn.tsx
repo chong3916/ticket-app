@@ -36,23 +36,25 @@ export const BoardColumn = ({ id, title, statusKey, tickets, canCreate, isAdmin,
                         {tickets.length}
                     </span>
                 </div>
-                {canCreate && (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-slate-400 hover:text-indigo-600"
-                        onClick={() => onCreateTicket(statusKey)}
-                    >
-                        <PlusIcon className="h-4 w-4" />
-                    </Button>
-                )}
-                {isAdmin && (
-                    <DeleteColumnDialog
-                        title="Delete Column?"
-                        description="All tickets in this column will be permanently removed."
-                        onConfirm={() => onRemoveColumn(statusKey)}
-                    />
-                )}
+                <div className="flex items-center gap-1">
+                    {canCreate && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-slate-400 hover:text-indigo-600"
+                            onClick={() => onCreateTicket(statusKey)}
+                        >
+                            <PlusIcon className="h-4 w-4" />
+                        </Button>
+                    )}
+                    {isAdmin && (
+                        <DeleteColumnDialog
+                            title="Delete Column?"
+                            description="All tickets in this column will be permanently removed."
+                            onConfirm={() => onRemoveColumn(statusKey)}
+                        />
+                    )}
+                </div>
             </div>
 
             {/* Ticket List */}

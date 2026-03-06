@@ -73,3 +73,11 @@ func (s *UserService) GenerateToken(user models.User) (string, error) {
 
 	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
 }
+
+func (s *UserService) GetUserByID(ctx context.Context, id uuid.UUID) (models.User, error) {
+	return s.Repo.GetUserByID(ctx, id)
+}
+
+func (s *UserService) GetUserByEmail(ctx context.Context, email string) (models.User, error) {
+	return s.Repo.GetUserByEmail(ctx, email)
+}

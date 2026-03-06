@@ -53,7 +53,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
 
             const data = await response.json();
             if (response.ok && data.token) {
-                login(data.token);
+                login(data.token, data.user);
                 toast.success("Account created successfully!");
                 navigate("/dashboard");
             } else {

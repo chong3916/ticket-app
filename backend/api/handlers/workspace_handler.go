@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/chong3916/todo-app/backend/api/services"
+	"github.com/chong3916/todo-app/backend/api/websocket"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"log"
@@ -11,10 +12,11 @@ import (
 type WorkspaceHandler struct {
 	Service           *services.WorkspaceService
 	InvitationService *services.InvitationService
+	hub               *websocket.Hub
 }
 
-func NewWorkspaceHandler(svc *services.WorkspaceService, invitationSvc *services.InvitationService) *WorkspaceHandler {
-	return &WorkspaceHandler{Service: svc, InvitationService: invitationSvc}
+func NewWorkspaceHandler(svc *services.WorkspaceService, invitationSvc *services.InvitationService, h *websocket.Hub) *WorkspaceHandler {
+	return &WorkspaceHandler{Service: svc, InvitationService: invitationSvc, hub: h}
 }
 
 type CreateWorkspaceRequest struct {

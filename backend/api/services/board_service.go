@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"github.com/chong3916/todo-app/backend/shared/db"
 	"github.com/chong3916/todo-app/backend/shared/models"
 	"github.com/google/uuid"
@@ -51,4 +52,36 @@ func (s *BoardService) AddColumnByWorkspace(ctx context.Context, workspaceID uui
 	}
 
 	return s.Repo.AddColumn(ctx, board.ID, name, statusKey)
+}
+
+func (s *BoardService) RemoveColumnByWorkspace(ctx context.Context, workspaceID uuid.UUID, statusKey string) error {
+	board, err := s.Repo.GetWorkspaceBoard(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+
+	// Prevent deleting the last column
+	if len(board.Columns) <= 1 {
+		return errors.New("cannot delete the last column on the board")
+	}
+
+	return s.Repo.RemoveColumn(ctx, board.ID, statusKey)
+}
+
+func (s *BoardService) UpdateColumn(ctx context.Context, columnID uuid.UUID, updates map[string]interface{}) error {
+	return s.Repo.UpdateColumn(ctx, columnID, updates)
+}
+
+func (s *BoardService) ReorderColumns(ctx context.Context, workspaceID uuid.UUID, orderedIDs []uuid.UUID) error {
+	board, err := s.Repo.GetWorkspaceBoard(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+
+	positions := make(map[uuid.UUID]int)
+	for i, id := range orderedIDs {
+		positions[id] = i
+	}
+
+	return s.Repo.ReorderColumns(ctx, board.ID, positions)
 }

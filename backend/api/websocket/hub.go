@@ -51,7 +51,6 @@ func (h *Hub) Run() {
 				select {
 				case client.Send <- event:
 				default:
-					// If buffer is full, disconnect the stale client
 					close(client.Send)
 					delete(h.Rooms[event.WorkspaceID], client)
 				}

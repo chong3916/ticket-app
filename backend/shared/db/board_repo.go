@@ -108,3 +108,10 @@ func (r *BoardRepository) AddColumn(ctx context.Context, boardID uuid.UUID, name
 	)
 	return col, err
 }
+
+func (r *BoardRepository) RemoveColumn(ctx context.Context, boardID uuid.UUID, statusKey string) error {
+	query := `DELETE FROM board_columns WHERE board_id = $1 AND status_key = $2`
+
+	_, err := r.db.Exec(ctx, query, boardID, statusKey)
+	return err
+}

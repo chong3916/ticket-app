@@ -4,6 +4,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { SortableTicket } from "@/components/SortableTicket.tsx";
 import type { Ticket } from "@/types/ticket.ts";
+import { DeleteColumnDialog } from "@/components/DeleteColumnDialog.tsx";
 
 interface BoardColumnProps {
     id: string;
@@ -11,11 +12,13 @@ interface BoardColumnProps {
     statusKey: string;
     tickets: Ticket[];
     canCreate: boolean;
+    isAdmin: boolean;
     onCreateTicket: (status: string) => void;
     onTicketClick: (ticket: Ticket) => void;
+    onRemoveColumn: (statusKey: string) => void;
 }
 
-export const BoardColumn = ({ id, title, statusKey, tickets, canCreate, onCreateTicket, onTicketClick }: BoardColumnProps) => {
+export const BoardColumn = ({ id, title, statusKey, tickets, canCreate, isAdmin, onCreateTicket, onTicketClick, onRemoveColumn }: BoardColumnProps) => {
     const { setNodeRef, isOver } = useDroppable({ id, disabled: !canCreate });
 
     return (
@@ -42,6 +45,13 @@ export const BoardColumn = ({ id, title, statusKey, tickets, canCreate, onCreate
                     >
                         <PlusIcon className="h-4 w-4" />
                     </Button>
+                )}
+                {isAdmin && (
+                    <DeleteColumnDialog
+                        title="Delete Column?"
+                        description="All tickets in this column will be permanently removed."
+                        onConfirm={() => onRemoveColumn(statusKey)}
+                    />
                 )}
             </div>
 

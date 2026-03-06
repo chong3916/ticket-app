@@ -93,6 +93,16 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     };
                 });
                 break;
+            case WSEventType.BoardColumnDeleted:
+                queryClient.setQueryData(['board', eventWsId], (oldBoard: any) => {
+                    if (!oldBoard) return oldBoard;
+                    return {
+                        ...oldBoard,
+                        columns: oldBoard.columns.filter((col: any) => (col.status_key || col.statusKey) !== payload.status_key)
+                    };
+                });
+                queryClient.invalidateQueries({ queryKey: ['tickets', eventWsId]});
+                break;
             default:
                 // Fallback
                 queryClient.invalidateQueries({ queryKey: ['tickets', eventWsId] });

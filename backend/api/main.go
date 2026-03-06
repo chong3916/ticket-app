@@ -91,6 +91,7 @@ func main() {
 			ws.POST("/invite", middleware.RequireRole(wsRepo, "admin"), wsHandler.InviteMember)
 			ws.GET("/board", middleware.RequireRole(wsRepo, "admin", "member", "viewer"), boardHandler.GetWorkspaceBoard)
 			ws.POST("/board/columns", middleware.RequireRole(wsRepo, "admin"), boardHandler.AddColumn)
+			ws.DELETE("/board/columns/:status_key", middleware.RequireRole(wsRepo, "admin"), boardHandler.RemoveColumn)
 		}
 	}
 

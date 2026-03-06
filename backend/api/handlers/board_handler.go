@@ -64,3 +64,32 @@ func (h *BoardHandler) AddColumn(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, column)
 }
+
+func (h *BoardHandler) RemoveColumn(c *gin.Context) {
+	wsID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid workspace id"})
+		return
+	}
+
+	statusKey := c.Param("status_key")
+	if statusKey == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status key is required"})
+		return
+	}
+
+	err = h.Service.RemoveColumnByWorkspace(c.Request.Context(), wsID, statusKey)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	payloadBytes, _ := json.Marshal(gin.H{"status_key": statusKey})
+	h.hub.Broadcast <- models.WSEvent{
+		Type:        "COLUMN_REMOVED",
+		WorkspaceID: wsID.String(),
+		Payload:     json.RawMessage(payloadBytes),
+	}
+
+	c.Status(http.StatusNoContent)
+}

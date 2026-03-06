@@ -127,6 +127,36 @@ export const TicketBoard = () => {
         }
     };
 
+    const handleRemoveColumn = async (statusKey: string) => {
+        const boardKey = ['board', currentWorkspace?.id];
+        const ticketKey = ['tickets', currentWorkspace?.id];
+
+        const previousBoard = queryClient.getQueryData(boardKey);
+        const previousTickets = queryClient.getQueryData(ticketKey);
+
+        queryClient.setQueryData(boardKey, (old: any) => ({
+            ...old,
+            columns: old.columns.filter((col: any) => col.status_key !== statusKey)
+        }));
+
+        queryClient.setQueryData(ticketKey, (old: any[] | undefined) =>
+            old?.filter(t => t.status !== statusKey)
+        );
+
+        try {
+            const res = await secureFetch(`/api/workspaces/${currentWorkspace?.id}/board/columns/${statusKey}`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) throw new Error("Failed to delete column");
+            toast.success("Column removed");
+        } catch (err) {
+            queryClient.setQueryData(boardKey, previousBoard);
+            queryClient.setQueryData(ticketKey, previousTickets);
+            toast.error("Could not remove column");
+        }
+    };
+
     if (!currentWorkspace) return <div className="p-8 text-center text-muted-foreground">Select a workspace to view the board.</div>;
     if (boardLoading || ticketsLoading) return <div>Loading...</div>;
 
@@ -160,8 +190,10 @@ export const TicketBoard = () => {
                             statusKey={col.status_key}
                             tickets={tickets?.filter((t: any) => t.status === col.status_key) || []}
                             canCreate={canEdit}
+                            isAdmin={isAdmin}
                             onCreateTicket={handleCreateClick}
                             onTicketClick={(ticket) => setViewingTicketId(ticket.id)}
+                            onRemoveColumn={handleRemoveColumn}
                         />
                     ))}
                     {isAdmin && <AddColumnButton onAdd={handleAddColumn} />}

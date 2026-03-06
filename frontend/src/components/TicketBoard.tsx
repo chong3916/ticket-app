@@ -257,8 +257,8 @@ export const TicketBoard = () => {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
         >
-            <div className="w-full overflow-x-auto pb-4">
-                <div className="flex gap-4 min-w-[900px]">
+            <div className="w-full overflow-x-auto pb-6 custom-scrollbar">
+                <div className="flex gap-4 items-start p-2 min-h-[calc(100vh-200px)]">
                     <SortableContext
                         items={board.columns.map((col: any) => col.id)}
                         strategy={horizontalListSortingStrategy}
@@ -280,7 +280,11 @@ export const TicketBoard = () => {
                             />
                         ))}
                     </SortableContext>
-                    {isAdmin && <AddColumnButton onAdd={handleAddColumn} />}
+                    {isAdmin && (
+                        <div className="shrink-0">
+                            <AddColumnButton onAdd={handleAddColumn} />
+                        </div>
+                    )}
                 </div>
             </div>
 

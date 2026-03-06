@@ -59,7 +59,7 @@ export const BoardColumn = ({ id, columnId, title, statusKey, tickets, canCreate
         <div
             ref={setNodeRef}
             style={style}
-            className={`flex flex-col rounded-lg p-4 w-full min-h-[600px] border bg-slate-100/50 border-slate-200`}
+            className="flex flex-col rounded-lg p-4 min-w-[320px] w-[320px] shrink-0 min-h-[600px] border bg-slate-100/50 border-slate-200"
         >
             {/* Column Header */}
             <div className="flex justify-between items-center mb-6">

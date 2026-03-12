@@ -3,7 +3,6 @@
 export DATABASE_URL=postgres://user:password@localhost:5432/tickets_db?sslmode=disable
 export RABBITMQ_URL=amqp://guest:guest@localhost:5672/
 export JWT_SECRET=CHANGE_ME
-export GOOGLE_CLIENT_ID=CHANGE_ME
 
 dev-infra:
 	docker-compose up -d db rabbitmq

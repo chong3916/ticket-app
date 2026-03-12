@@ -7,6 +7,7 @@ import { WorkspaceProvider } from "@/context/WorkspaceProvider.tsx";
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SocketProvider } from "@/context/SocketContext.tsx";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -17,16 +18,23 @@ const queryClient = new QueryClient({
     },
 })
 
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+if (!googleClientId) {
+    console.warn("Missing VITE_GOOGLE_CLIENT_ID environment variable");
+}
+
 createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
-        <QueryClientProvider client={queryClient}>
-            <AuthProvider>
-                <WorkspaceProvider>
-                    <SocketProvider>
-                        <App/>
-                    </SocketProvider>
-                </WorkspaceProvider>
-            </AuthProvider>
-        </QueryClientProvider>
+        <GoogleOAuthProvider clientId={googleClientId || ""}>
+            <QueryClientProvider client={queryClient}>
+                <AuthProvider>
+                    <WorkspaceProvider>
+                        <SocketProvider>
+                            <App/>
+                        </SocketProvider>
+                    </WorkspaceProvider>
+                </AuthProvider>
+            </QueryClientProvider>
+        </GoogleOAuthProvider>
     </BrowserRouter>,
 )

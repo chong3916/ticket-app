@@ -13,10 +13,11 @@ import {
     FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useAuth } from "@/context/AuthContext.tsx";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
+import { GoogleLogin } from "@react-oauth/google";
 
 export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
     const navigate = useNavigate();
@@ -54,7 +55,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
             const data = await response.json();
             if (response.ok && data.token) {
                 login(data.token, data.user);
-                toast.success("Account created successfully!");
+                toast.success("Welcome!");
                 navigate("/dashboard");
             } else {
                 toast.error(data.error || 'Registration failed');
@@ -65,6 +66,27 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
             console.error("Auth error:", err);
         }
     };
+
+    const handleGoogleSuccess = useCallback(async (credentialResponse: any) => {
+        try {
+            const response = await fetch('/api/auth/google', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: credentialResponse.credential }),
+            });
+
+            const data = await response.json();
+            if (response.ok && data.token) {
+                login(data.token, data.user);
+                toast.success("Welcome!");
+                navigate("/dashboard");
+            } else {
+                toast.error(data.error || "Google sign up failed");
+            }
+        } catch (err) {
+            toast.error("Server connection failed");
+        }
+    }, [login, navigate]);
 
     return (
         <Card {...props}>
@@ -79,7 +101,9 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                     <FieldGroup>
                         <Field>
                             <FieldLabel htmlFor="username">Username</FieldLabel>
-                            <Input id="username" type="text" placeholder="John Doe" value={formData.username} onChange={handleChange} required />
+                            <Input id="username" type="text" placeholder="John Doe" value={formData.username}
+                                   autoComplete="username"
+                                   onChange={handleChange} required />
                         </Field>
                         <Field>
                             <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -88,6 +112,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                                 type="email"
                                 placeholder="m@example.com"
                                 value={formData.email}
+                                autoComplete="email"
                                 onChange={handleChange}
                                 required
                             />
@@ -98,7 +123,9 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                         </Field>
                         <Field>
                             <FieldLabel htmlFor="password">Password</FieldLabel>
-                            <Input id="password" type="password" value={formData.password} onChange={handleChange} required />
+                            <Input id="password" type="password" value={formData.password}
+                                   autoComplete="new-password"
+                                   onChange={handleChange} required />
                             <FieldDescription>
                                 Must be at least 8 characters long.
                             </FieldDescription>
@@ -107,15 +134,19 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                             <FieldLabel htmlFor="confirmPassword">
                                 Confirm Password
                             </FieldLabel>
-                            <Input id="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} required />
+                            <Input id="confirmPassword" type="password" value={formData.confirmPassword}
+                                   autoComplete="new-password"
+                                   onChange={handleChange} required />
                             <FieldDescription>Please confirm your password.</FieldDescription>
                         </Field>
                         <FieldGroup>
                             <Field>
                                 <Button type="submit">Create Account</Button>
-                                <Button variant="outline" type="button">
-                                    Sign up with Google
-                                </Button>
+                                <GoogleLogin
+                                    onSuccess={handleGoogleSuccess}
+                                    onError={() => toast.error("Signup Failed")}
+                                    text="signup_with"
+                                />
                                 <FieldDescription className="px-6 text-center">
                                     Already have an account? <Link to="/login" className="underline">Sign in</Link>
                                 </FieldDescription>

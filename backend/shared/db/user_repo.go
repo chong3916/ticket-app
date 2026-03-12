@@ -67,3 +67,26 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id uuid.UUID) (models.
 	}
 	return user, nil
 }
+
+func (r *UserRepository) GetUserByIdentity(ctx context.Context, provider, providerID string) (models.User, error) {
+	query := `
+        SELECT u.id, u.username, u.email, u.password_hash, u.created_at, u.updated_at
+        FROM users u
+        JOIN user_identities ui ON u.id = ui.user_id
+        WHERE ui.provider_name = $1 AND ui.provider_id = $2
+    `
+	var user models.User
+	err := r.db.QueryRow(ctx, query, provider, providerID).Scan(
+		&user.ID, &user.Username, &user.Email, &user.Password, &user.CreatedAt, &user.UpdatedAt,
+	)
+	return user, err
+}
+
+func (r *UserRepository) CreateIdentity(ctx context.Context, identity models.UserIdentity) error {
+	query := `
+        INSERT INTO user_identities (id, user_id, provider_name, provider_id, provider_email)
+        VALUES ($1, $2, $3, $4, $5)
+    `
+	_, err := r.db.Exec(ctx, query, uuid.New(), identity.UserID, identity.ProviderName, identity.ProviderID, identity.ProviderEmail)
+	return err
+}

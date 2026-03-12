@@ -58,6 +58,8 @@ func main() {
 	{
 		api.POST("/register", userHandler.Register)
 		api.POST("/login", userHandler.Login)
+
+		api.POST("/auth/google", userHandler.GoogleLogin)
 	}
 
 	protected := r.Group("/api", middleware.AuthMiddleware())

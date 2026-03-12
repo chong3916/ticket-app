@@ -81,3 +81,33 @@ func (s *UserService) GetUserByID(ctx context.Context, id uuid.UUID) (models.Use
 func (s *UserService) GetUserByEmail(ctx context.Context, email string) (models.User, error) {
 	return s.Repo.GetUserByEmail(ctx, email)
 }
+
+func (s *UserService) FindOrCreateOAuthUser(ctx context.Context, provider, providerID, email, username string) (models.User, error) {
+	user, err := s.Repo.GetUserByIdentity(ctx, provider, providerID)
+	if err == nil {
+		return user, nil
+	}
+
+	user, err = s.Repo.GetUserByEmail(ctx, email)
+	if err != nil {
+		user = models.User{
+			ID:       uuid.New(),
+			Username: username,
+			Email:    email,
+			Password: "", // No password for oauth users
+		}
+		if err := s.Repo.CreateUser(ctx, user); err != nil {
+			return models.User{}, err
+		}
+	}
+
+	// Create identity link for user
+	err = s.Repo.CreateIdentity(ctx, models.UserIdentity{
+		UserID:        user.ID,
+		ProviderName:  provider,
+		ProviderID:    providerID,
+		ProviderEmail: email,
+	})
+
+	return user, err
+}

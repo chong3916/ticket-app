@@ -14,10 +14,11 @@ import {
     FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useAuth } from "@/context/AuthContext.tsx";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
+import { GoogleLogin } from "@react-oauth/google";
 
 export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
     const navigate = useNavigate();
@@ -49,6 +50,27 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
         }
     };
 
+    const handleGoogleSuccess = useCallback(async (credentialResponse: any) => {
+        try {
+            const response = await fetch('/api/auth/google', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: credentialResponse.credential }),
+            });
+
+            const data = await response.json();
+            if (response.ok && data.token) {
+                login(data.token, data.user);
+                toast.success("Welcome back!");
+                navigate("/dashboard");
+            } else {
+                toast.error(data.error || "Google login failed");
+            }
+        } catch (err) {
+            toast.error("Server connection failed");
+        }
+    }, [login, navigate]);
+
     return (
         <div className={ cn("flex flex-col gap-6", className) } { ...props }>
             <Card>
@@ -66,6 +88,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
                                 <Input
                                     id="email"
                                     type="email"
+                                    autoComplete="email"
                                     placeholder="m@example.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
@@ -83,13 +106,15 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
                                     </a>
                                 </div>
                                 <Input id="password" type="password" value={password}
+                                       autoComplete="current-password"
                                        onChange={(e) => setPassword(e.target.value)} required/>
                             </Field>
                             <Field>
                                 <Button type="submit">Login</Button>
-                                {/*<Button variant="outline" type="button">*/}
-                                {/*    Login with Google*/}
-                                {/*</Button>*/}
+                                <GoogleLogin theme="outline"
+                                             onSuccess={handleGoogleSuccess}
+                                             onError={() => toast.error("Google Login Failed")}
+                                />
                                 <FieldDescription className="text-center">
                                     Don&apos;t have an account? <Link to="/signup" className="underline">Sign up</Link>
                                 </FieldDescription>

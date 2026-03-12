@@ -3,7 +3,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 interface User {
     id: string;
     email: string;
-    name: string;
+    username: string;
 }
 
 interface AuthContextType {

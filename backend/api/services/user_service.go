@@ -54,6 +54,10 @@ func (s *UserService) Login(ctx context.Context, email, password string) (string
 		return "", errors.New("invalid credentials")
 	}
 
+	if user.Password == "" {
+		return "", errors.New("please log in with Google")
+	}
+
 	// Compare password
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
@@ -88,26 +92,34 @@ func (s *UserService) FindOrCreateOAuthUser(ctx context.Context, provider, provi
 		return user, nil
 	}
 
-	user, err = s.Repo.GetUserByEmail(ctx, email)
+	existingUser, err := s.Repo.GetUserByEmail(ctx, email)
+	var targetUser models.User
+
 	if err != nil {
-		user = models.User{
+		targetUser = models.User{
 			ID:       uuid.New(),
 			Username: username,
 			Email:    email,
 			Password: "", // No password for oauth users
 		}
-		if err := s.Repo.CreateUser(ctx, user); err != nil {
+		if err := s.Repo.CreateUser(ctx, targetUser); err != nil {
 			return models.User{}, err
 		}
+	} else {
+		targetUser = existingUser
 	}
 
 	// Create identity link for user
 	err = s.Repo.CreateIdentity(ctx, models.UserIdentity{
-		UserID:        user.ID,
+		UserID:        targetUser.ID,
 		ProviderName:  provider,
 		ProviderID:    providerID,
 		ProviderEmail: email,
 	})
 
-	return user, err
+	if err != nil {
+		return targetUser, nil
+	}
+
+	return targetUser, err
 }
